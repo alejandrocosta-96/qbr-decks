@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sysdig — QBR Apr 2026</title>
+  <style>
+    :root {
+      --black:      #000000;
+      --n1300:      #211E20;
+      --n1200:      #333132;
+      --n1100:      #4A4748;
+      --n900:       #737072;
+      --n700:       #A5A0A3;
+      --n500:       #DEDCDD;
+      --white:      #FFFFFF;
+      --yellow:     #FFE000;
+      --yellow-dim: #F6C800;
+      --yellow-bg:  rgba(255,224,0,.08);
+      --green:      #A0ED1A;
+      --green-bg:   rgba(160,237,26,.08);
+      --red:        #FF342D;
+      --red-bg:     rgba(255,52,45,.08);
+      --blue:       #199BFF;
+      --blue-bg:    rgba(25,155,255,.08);
+      --purple:     #A46FFF;
+      --purple-bg:  rgba(164,111,255,.08);
+      --orange:     #FF984A;
+      --orange-bg:  rgba(255,152,74,.08);
+      --surface:    #111010;
+      --card:       #1A1819;
+      --border:     #2E2B2D;
+      --border-dim: #3D393B;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'New Hero', 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--black);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px;
+    }
+
+    .deck { width: 100%; max-width: 1100px; position: relative; }
+
+    .slide {
+      display: none; background: var(--surface); border-radius: 16px;
+      overflow: hidden; box-shadow: 0 0 0 1px var(--border), 0 24px 64px rgba(0,0,0,.6);
+      min-height: 620px; position: relative;
+    }
+    .slide.active { display: flex; flex-direction: column; }
+
+    .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; gap: 16px; }
+    .nav button {
+      background: var(--n1200); color: var(--white); border: 1px solid var(--border);
+      padding: 10px 28px; border-radius: 8px; font-size: .9rem; font-weight: 600;
+      cursor: pointer; transition: background .15s, border-color .15s, color .15s;
+    }
+    .nav button:hover { background: var(--n1100); border-color: var(--yellow); color: var(--yellow); }
+    .nav button:disabled { opacity: .25; cursor: default; }
+    .dots { display: flex; gap: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--n1100); cursor: pointer; transition: background .2s, transform .2s; }
+    .dot.active { background: var(--yellow); transform: scale(1.4); }
+
+    .slide-header {
+      background: var(--n1300); color: var(--white);
+      padding: 22px 40px 18px; display: flex; align-items: center; gap: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .slide-header .logo-box {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--yellow-bg); border: 1px solid rgba(255,224,0,.2);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .slide-header h2 { font-size: .75rem; font-weight: 600; color: var(--yellow); letter-spacing: .1em; text-transform: uppercase; }
+    .slide-header h1 { font-size: 1.45rem; font-weight: 700; color: var(--white); margin-top: 2px; }
+    .slide-body { padding: 26px 40px; flex: 1; overflow-y: auto; }
+    .slide-footer {
+      padding: 10px 40px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: .68rem; color: var(--n900); background: var(--n1300);
+    }
+    .slide-footer .period { font-weight: 700; color: var(--yellow); }
+
+    /* Cover */
+    .cover {
+      background: var(--black); color: var(--white);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center; padding: 52px 48px;
+      position: relative; overflow: hidden; min-height: 620px;
+    }
+    .cover::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 30%, rgba(255,224,0,.07) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 30% at 80% 75%, rgba(160,237,26,.04) 0%, transparent 60%),
+        radial-gradient(ellipse 35% 30% at 15% 80%, rgba(255,52,45,.03) 0%, transparent 60%);
+    }
+    .cover-eyebrow { font-size: .7rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--n900); margin-bottom: 18px; position: relative; }
+    .cover-logo { margin-bottom: 24px; display: flex; align-items: center; gap: 14px; position: relative; }
+    .cover-logo .brand-name { font-size: 1.2rem; font-weight: 300; letter-spacing: .22em; text-transform: uppercase; color: var(--n700); }
+    .cover h1 { font-size: 2.7rem; font-weight: 800; line-height: 1.12; max-width: 760px; margin-bottom: 12px; position: relative; letter-spacing: -.02em; }
+    .cover h1 span { color: var(--yellow); }
+    .cover .sub { font-size: .98rem; color: var(--n700); margin-bottom: 40px; line-height: 1.65; position: relative; max-width: 600px; }
+    .cover-meta { display: flex; gap: 36px; margin-top: 6px; position: relative; flex-wrap: wrap; justify-content: center; }
+    .meta-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .meta-label { font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--n900); }
+    .meta-val { font-size: .92rem; font-weight: 700; color: var(--white); }
+    .cover-divider { width: 48px; height: 1px; background: var(--border-dim); margin: 24px auto; position: relative; }
+
+    /* Layouts */
+    .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* KPI */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    .kpi-grid.cols-3 { grid-template-columns: repeat(3,1fr); }
+    .kpi-card {
+      background: var(--card); border-radius: 12px; padding: 16px 16px 14px;
+      border: 1px solid var(--border); position: relative;
+    }
+    .kpi-label { font-size: .63rem; text-transform: uppercase; letter-spacing: .09em; color: var(--n900); margin-bottom: 8px; font-weight: 700; }
+    .kpi-value { font-size: 1.85rem; font-weight: 800; color: var(--white); line-height: 1; }
+    .kpi-sub   { font-size: .67rem; color: var(--n900); margin-top: 4px; }
+    .kpi-bar   { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; border-radius: 0 0 12px 12px; }
+    .up { color: var(--green); } .down { color: var(--red); } .neut { color: var(--n700); }
+    .bar-yellow { background: var(--yellow); } .bar-green { background: var(--green); }
+    .bar-red { background: var(--red); } .bar-blue { background: var(--blue); }
+    .bar-purple { background: var(--purple); } .bar-orange { background: var(--orange); }
+
+    .section-title {
+      font-size: .63rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .13em; color: var(--yellow); margin-bottom: 10px;
+      padding-bottom: 6px; border-bottom: 1px solid var(--border);
+    }
+
+    .bullet-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+    .bullet-list li { display: flex; align-items: flex-start; gap: 10px; font-size: .83rem; color: var(--n500); line-height: 1.5; }
+    .bullet-list li .icon {
+      width: 20px; height: 20px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; flex-shrink: 0;
+      margin-top: 2px; font-size: .6rem; font-weight: 800;
+    }
+    .icon-yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(255,224,0,.25); }
+    .icon-green  { background: var(--green-bg);  color: var(--green);  border: 1px solid rgba(160,237,26,.25); }
+    .icon-red    { background: var(--red-bg);    color: var(--red);    border: 1px solid rgba(255,52,45,.25); }
+    .icon-blue   { background: var(--blue-bg);   color: var(--blue);   border: 1px solid rgba(25,155,255,.25); }
+    .icon-orange { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(255,152,74,.25); }
+    .icon-purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(164,111,255,.25); }
+    strong { color: var(--white); font-weight: 700; }
+
+    .prog-item { margin-bottom: 13px; }
+    .prog-label { display: flex; justify-content: space-between; font-size: .78rem; font-weight: 600; color: var(--n500); margin-bottom: 5px; }
+    .prog-track { background: var(--n1200); border-radius: 99px; height: 6px; overflow: hidden; }
+    .prog-fill { height: 100%; border-radius: 99px; width: 0; transition: width .9s cubic-bezier(.22,1,.36,1); }
+    .slide.active .prog-fill { width: var(--w); }
+
+    .tag { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: .63rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    .tag-green  { background: var(--green-bg);  color: var(--green);  border: 1px solid rgba(160,237,26,.3); }
+    .tag-yellow { background: var(--yellow-bg); color: var(--yellow-dim); border: 1px solid rgba(255,224,0,.3); }
+    .tag-red    { background: var(--red-bg);    color: var(--red);    border: 1px solid rgba(255,52,45,.3); }
+    .tag-blue   { background: var(--blue-bg);   color: var(--blue);   border: 1px solid rgba(25,155,255,.3); }
+    .tag-purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(164,111,255,.3); }
+    .tag-orange { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(255,152,74,.3); }
+
+    .timeline { display: flex; flex-direction: column; position: relative; }
+    .timeline::before { content: ''; position: absolute; left: 17px; top: 0; bottom: 0; width: 1px; background: var(--border); }
+    .tl-item { display: flex; align-items: flex-start; gap: 12px; position: relative; padding-bottom: 14px; }
+    .tl-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--surface); flex-shrink: 0; margin-top: 4px; z-index: 1; }
+    .tl-dot.done   { background: var(--green);  box-shadow: 0 0 0 2px rgba(160,237,26,.3); }
+    .tl-dot.active { background: var(--yellow); box-shadow: 0 0 0 2px rgba(255,224,0,.3); }
+    .tl-dot.risk   { background: var(--red);    box-shadow: 0 0 0 2px rgba(255,52,45,.3); }
+    .tl-content .tl-date  { font-size: .63rem; color: var(--n900); font-weight: 600; }
+    .tl-content .tl-label { font-size: .82rem; color: var(--white); font-weight: 700; margin-top: 1px; }
+    .tl-content .tl-desc  { font-size: .72rem; color: var(--n700); margin-top: 2px; line-height: 1.4; }
+
+    .row-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .81rem; }
+    .row-item:last-child { border-bottom: none; }
+    .row-left { color: var(--n500); font-weight: 500; }
+    .row-right { display: flex; align-items: center; gap: 8px; }
+
+    .priority-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 16px; height: 100%; }
+    .priority-card .p-num { font-size: .63rem; font-weight: 800; color: var(--yellow); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 5px; }
+    .priority-card h3 { font-size: .9rem; color: var(--white); font-weight: 700; margin-bottom: 7px; }
+    .priority-card p  { font-size: .75rem; color: var(--n700); line-height: 1.5; margin-bottom: 10px; }
+    .priority-card .owner-row { display: flex; gap: 5px; flex-wrap: wrap; }
+
+    .callout { border-radius: 10px; padding: 12px 16px; font-size: .8rem; line-height: 1.55; margin-top: 14px; }
+    .callout-yellow { background: var(--yellow-bg); border-left: 3px solid var(--yellow);  color: var(--n500); }
+    .callout-green  { background: var(--green-bg);  border-left: 3px solid var(--green);   color: var(--n500); }
+    .callout-red    { background: var(--red-bg);    border-left: 3px solid var(--red);     color: var(--n500); }
+    .callout-blue   { background: var(--blue-bg);   border-left: 3px solid var(--blue);    color: var(--n500); }
+    .callout-orange { background: var(--orange-bg); border-left: 3px solid var(--orange);  color: var(--n500); }
+    .callout-purple { background: var(--purple-bg); border-left: 3px solid var(--purple);  color: var(--n500); }
+
+    .quote-block {
+      background: var(--card); border-left: 3px solid var(--yellow);
+      border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: .8rem;
+      font-style: italic; color: var(--n500); line-height: 1.6; margin: 10px 0;
+    }
+    .quote-attr { font-style: normal; font-size: .7rem; color: var(--n900); margin-top: 6px; font-weight: 700; }
+
+    .bar-chart { display: flex; align-items: flex-end; gap: 10px; height: 120px; margin: 8px 0 10px; }
+    .bar-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .bar-col .bar-val   { font-size: .73rem; font-weight: 700; color: var(--white); }
+    .bar-col .bar-fill  { width: 100%; border-radius: 4px 4px 0 0; transform-origin: bottom; transform: scaleY(0); transition: transform .7s cubic-bezier(.22,1,.36,1); }
+    .bar-col .bar-month { font-size: .65rem; color: var(--n900); font-weight: 600; }
+    .slide.active .bar-fill { transform: scaleY(1); }
+    .bar-col:nth-child(1) .bar-fill { transition-delay: .10s; }
+    .bar-col:nth-child(2) .bar-fill { transition-delay: .25s; }
+    .bar-col:nth-child(3) .bar-fill { transition-delay: .40s; }
+    .bar-col:nth-child(4) .bar-fill { transition-delay: .55s; }
+
+    /* Live pulse */
+    .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(160,237,26,.4); } 50% { box-shadow: 0 0 0 5px rgba(160,237,26,0); } }
+
+    .health-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--yellow-bg); border: 1px solid rgba(255,224,0,.3);
+      border-radius: 99px; padding: 5px 14px; font-size: .72rem; font-weight: 700; color: var(--yellow);
+    }
+    .health-badge.restored { background: rgba(255,224,0,.06); }
+
+    .risk-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+    .risk-badge { flex-shrink: 0; padding: 3px 10px; border-radius: 6px; font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; min-width: 68px; text-align: center; }
+    .risk-high   { background: var(--red-bg);    color: var(--red);    border: 1px solid rgba(255,52,45,.3); }
+    .risk-med    { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(255,152,74,.3); }
+    .risk-low    { background: var(--blue-bg);   color: var(--blue);   border: 1px solid rgba(25,155,255,.3); }
+    .risk-text   { font-size: .8rem; color: var(--n500); line-height: 1.4; }
+    .risk-text strong { color: var(--white); }
+
+    /* ── Value prop hero ── */
+    .vp-hero {
+      display: grid; grid-template-columns: 1fr auto 1fr; gap: 0;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden; margin-bottom: 20px;
+    }
+    .vp-side { padding: 22px 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .vp-side.bad  { background: linear-gradient(135deg, rgba(255,52,45,.06) 0%, transparent 80%); }
+    .vp-side.good { background: linear-gradient(135deg, rgba(160,237,26,.07) 0%, transparent 80%); }
+    .vp-divider { width: 1px; background: var(--border); align-self: stretch; position: relative; display: flex; align-items: center; justify-content: center; }
+    .vp-arrow { width: 32px; height: 32px; background: var(--n1200); border: 1px solid var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: var(--yellow); position: absolute; }
+    .vp-label { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--n900); margin-bottom: 6px; }
+    .vp-num-bad  { font-size: 3rem; font-weight: 800; color: var(--red);   line-height: 1; letter-spacing: -.03em; }
+    .vp-num-good { font-size: 3rem; font-weight: 800; color: var(--green); line-height: 1; letter-spacing: -.03em; }
+    .vp-unit { font-size: .75rem; color: var(--n700); margin-top: 4px; }
+    .vp-badge { margin-top: 10px; display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: .7rem; font-weight: 800; }
+
+    /* ── Animations ── */
+    .slide-body { opacity: 0; transform: translateY(8px); transition: opacity .35s ease, transform .35s ease; }
+    .slide.active .slide-body { opacity: 1; transform: translateY(0); }
+
+    .bullet-list li { opacity: 0; transform: translateY(10px); transition: opacity .4s ease, transform .4s ease; }
+    .slide.active .bullet-list li { opacity: 1; transform: translateY(0); }
+    .bullet-list li:nth-child(1) { transition-delay: .06s; }
+    .bullet-list li:nth-child(2) { transition-delay: .16s; }
+    .bullet-list li:nth-child(3) { transition-delay: .26s; }
+    .bullet-list li:nth-child(4) { transition-delay: .36s; }
+    .bullet-list li:nth-child(5) { transition-delay: .46s; }
+    .bullet-list li:nth-child(6) { transition-delay: .56s; }
+
+    .kpi-card { opacity: 0; transform: translateY(16px) scale(.97); transition: opacity .45s ease, transform .45s ease; }
+    .slide.active .kpi-card { opacity: 1; transform: translateY(0) scale(1); }
+    .kpi-grid .kpi-card:nth-child(1) { transition-delay: .08s; }
+    .kpi-grid .kpi-card:nth-child(2) { transition-delay: .20s; }
+    .kpi-grid .kpi-card:nth-child(3) { transition-delay: .32s; }
+    .kpi-grid .kpi-card:nth-child(4) { transition-delay: .44s; }
+
+    .priority-card { opacity: 0; transform: translateY(14px); transition: opacity .45s ease, transform .45s ease; }
+    .slide.active .priority-card { opacity: 1; transform: translateY(0); }
+    .three-col .priority-card:nth-child(1) { transition-delay: .08s; }
+    .three-col .priority-card:nth-child(2) { transition-delay: .20s; }
+    .three-col .priority-card:nth-child(3) { transition-delay: .32s; }
+
+    .tl-item { opacity: 0; transform: translateX(-10px); transition: opacity .4s ease, transform .4s ease; }
+    .slide.active .tl-item { opacity: 1; transform: translateX(0); }
+    .tl-item:nth-child(1) { transition-delay: .04s; }
+    .tl-item:nth-child(2) { transition-delay: .14s; }
+    .tl-item:nth-child(3) { transition-delay: .24s; }
+    .tl-item:nth-child(4) { transition-delay: .34s; }
+    .tl-item:nth-child(5) { transition-delay: .44s; }
+    .tl-item:nth-child(6) { transition-delay: .54s; }
+
+    .row-item { opacity: 0; transition: opacity .35s ease; }
+    .slide.active .row-item { opacity: 1; }
+    .row-item:nth-child(1)  { transition-delay: .05s; }
+    .row-item:nth-child(2)  { transition-delay: .12s; }
+    .row-item:nth-child(3)  { transition-delay: .19s; }
+    .row-item:nth-child(4)  { transition-delay: .26s; }
+    .row-item:nth-child(5)  { transition-delay: .33s; }
+    .row-item:nth-child(6)  { transition-delay: .40s; }
+    .row-item:nth-child(7)  { transition-delay: .47s; }
+    .row-item:nth-child(8)  { transition-delay: .54s; }
+
+    .callout { opacity: 0; transition: opacity .5s .35s ease; }
+    .slide.active .callout { opacity: 1; }
+
+    .quote-block { opacity: 0; transform: translateX(-12px); transition: opacity .5s .1s ease, transform .5s .1s ease; }
+    .slide.active .quote-block { opacity: 1; transform: translateX(0); }
+
+    .vp-hero { opacity: 0; transform: translateY(12px); transition: opacity .5s ease, transform .5s ease; }
+    .slide.active .vp-hero { opacity: 1; transform: translateY(0); }
+
+    .cover > * { opacity: 0; transform: translateY(18px); }
+    .slide.active .cover > *:nth-child(1) { animation: fadeUp .5s .05s ease forwards; }
+    .slide.active .cover > *:nth-child(2) { animation: fadeUp .5s .18s ease forwards; }
+    .slide.active .cover > *:nth-child(3) { animation: fadeUp .5s .30s ease forwards; }
+    .slide.active .cover > *:nth-child(4) { animation: fadeUp .5s .42s ease forwards; }
+    .slide.active .cover > *:nth-child(5) { animation: fadeUp .5s .52s ease forwards; }
+    .slide.active .cover > *:nth-child(6) { animation: fadeUp .5s .62s ease forwards; }
+    .slide.active .cover > *:nth-child(7) { animation: fadeUp .5s .72s ease forwards; }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- ══ COVER ══ -->
+  <div class="slide active">
+    <div class="cover">
+      <div class="cover-eyebrow">Quarterly Business Review · Apr 2026</div>
+      <div class="cover-logo">
+        <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+          <circle cx="14" cy="20" r="8" stroke="#FFE000" stroke-width="2" fill="none"/>
+          <circle cx="14" cy="20" r="2.5" fill="#FFE000"/>
+          <polygon points="26,12 38,20 26,28" fill="none" stroke="#FFE000" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-name">Sysdig</span>
+      </div>
+      <h1>More tickets.<br/><span>Faster resolutions. Zero SLA breaches.</span></h1>
+      <p class="sub">Sysdig went live in October 2025 and hit turbulence fast. This is the story of how we stabilized together — and where we take it from here.</p>
+      <div class="cover-divider"></div>
+      <div class="cover-meta">
+        <div class="meta-item"><span class="meta-label">Go-Live</span><span class="meta-val">Oct 27, 2025</span></div>
+        <div class="meta-item"><span class="meta-label">Period</span><span class="meta-val">Jan – Mar 2026</span></div>
+        <div class="meta-item"><span class="meta-label">Plan</span><span class="meta-val">Ultimate · HVA</span></div>
+        <div class="meta-item"><span class="meta-label">ACV</span><span class="meta-val">$108,333</span></div>
+        <div class="meta-item"><span class="meta-label">CSM</span><span class="meta-val">Alejandro Costa</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 1 — BUSINESS HIGHLIGHTS ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Before we begin</h2><h1>Business Highlights — Your Quarter</h1></div>
+    </div>
+    <div class="slide-body" style="display:flex;flex-direction:column;justify-content:center;gap:26px;">
+      <p style="font-size:.95rem;color:var(--n700);max-width:680px;line-height:1.65;">Before we dive into the numbers — we want to hear from you. Q1 was a challenging but pivotal quarter for Sysdig. What's on your mind heading into Q2?</p>
+      <div class="three-col">
+        <div class="priority-card" style="border-top:3px solid var(--yellow);">
+          <div class="p-num">🏆 Wins</div>
+          <p style="margin-bottom:0;">Product milestones, customer expansions, team wins? What went well this quarter outside of the DevRev story?</p>
+        </div>
+        <div class="priority-card" style="border-top:3px solid var(--blue);">
+          <div class="p-num" style="color:var(--blue);">🔭 Strategic shifts</div>
+          <p style="margin-bottom:0;">Anthony's new AI strategy role, the tool consolidation mandate — how is that changing the way the team operates?</p>
+        </div>
+        <div class="priority-card" style="border-top:3px solid var(--orange);">
+          <div class="p-num" style="color:var(--orange);">⚡ What's still hard</div>
+          <p style="margin-bottom:0;">We know trust is still being rebuilt, especially with the EMEA team. What does success look like from where you're sitting?</p>
+        </div>
+      </div>
+      <div class="callout callout-yellow" style="max-width:760px;">
+        <strong>Our commitment coming in:</strong> We're not here to paper over a difficult Q1. We want to show you the data, acknowledge what was hard, and make the case — with your own metrics — that the trajectory is moving in the right direction.
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>1 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 2 — EXECUTIVE SUMMARY ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 2 of 10</h2><h1>Executive Summary</h1></div>
+    </div>
+    <div class="slide-body">
+      <div style="margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div class="health-badge restored"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--yellow);margin-right:6px;"></span>Account State: Restored</div>
+        <span style="font-size:.75rem;color:var(--n700);">Engagement: <strong style="color:var(--yellow);">Hot (19)</strong> &nbsp;·&nbsp; SLA Compliance: <strong style="color:var(--green);">100%</strong> &nbsp;·&nbsp; SLA Breaches: <strong style="color:var(--green);">0%</strong></span>
+      </div>
+      <div class="two-col" style="gap:32px;">
+        <div>
+          <p class="section-title">What we built and stabilized</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-green">✓</span><span><strong>Ticket volume growing, resolution time falling.</strong> Sysdig's team is processing more tickets than ever — and closing them faster. Jan → Mar: volume up 3×, average resolution time down from ~13h to ~3–4h.</span></li>
+            <li><span class="icon icon-green">✓</span><span><strong>100% SLA compliance. Zero breaches.</strong> Across every SLA tier — First Response, Next Response, Resolution — your team hit 100% compliance all quarter with 0% breach rate.</span></li>
+            <li><span class="icon icon-green">✓</span><span><strong>Active users growing steadily.</strong> Platform adoption has climbed consistently, reaching ~150 active users by late March — a sign the team is ingraining DevRev into daily workflows.</span></li>
+            <li><span class="icon icon-green">✓</span><span><strong>Workflows and KB articles accelerating.</strong> Automation creation and knowledge base article production both scaled up sharply in March — your team is building institutional knowledge in DevRev, not just closing tickets.</span></li>
+            <li><span class="icon icon-green">✓</span><span><strong>Account restored from Stressed state.</strong> After entering a Stressed state on Feb 2, intensive Hypercare throughout Q1 brought the account back. Michelle Fogwell: <em>"it feels less like fires every day."</em></span></li>
+          </ul>
+        </div>
+        <div>
+          <p class="section-title">What still needs work</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-orange">!</span><span><strong>Team-level trust is still rebuilding.</strong> Michelle and Patrick are doing the work — but the broader team (especially EMEA) has long memories. One stakeholder told Anthony: <em>"Moving to DevRev was probably one of the worst decisions you made."</em> We own this.</span></li>
+            <li><span class="icon icon-red">✕</span><span><strong>IBM / ServiceNow integration blocked.</strong> Sysdig's team has done their part. IBM hasn't. This is creating visible friction and a perception problem — management escalations are ongoing on both sides.</span></li>
+            <li><span class="icon icon-red">✕</span><span><strong>Dashboards still a gap.</strong> Patrick's analytics needs aren't fully met yet — a second enablement session is in flight. This must close in Q2.</span></li>
+            <li><span class="icon icon-yellow">★</span><span><strong>Computer / AI expansion decision pending.</strong> Anthony Field's new AI strategy mandate makes this a real conversation — but he can't champion it until support is fully satisfied. Q2 is the window.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>2 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 3 — THE VALUE PROP (core story) ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 3 of 10</h2><h1>The Core Story: Volume Up, Speed Up</h1></div>
+    </div>
+    <div class="slide-body">
+      <!-- Main value prop hero — two comparisons side by side -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+
+        <!-- Volume -->
+        <div style="background:linear-gradient(135deg,rgba(160,237,26,.06) 0%,rgba(160,237,26,.01) 100%);border:1px solid rgba(160,237,26,.2);border-radius:14px;padding:20px 24px;">
+          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--n900);margin-bottom:14px;">Ticket Volume — Jan → Mar 2026</div>
+          <div style="display:flex;align-items:flex-end;gap:8px;height:90px;margin-bottom:10px;">
+            <!-- animated bars -->
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <span class="bar-val" style="font-size:.72rem;font-weight:700;color:var(--n500);">~200</span>
+              <div class="bar-fill" style="width:100%;height:30px;background:var(--n700);border-radius:4px 4px 0 0;transform-origin:bottom;"></div>
+              <span style="font-size:.62rem;color:var(--n900);">Jan</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <span class="bar-val" style="font-size:.72rem;font-weight:700;color:var(--n500);">~490</span>
+              <div class="bar-fill" style="width:100%;height:72px;background:var(--yellow);border-radius:4px 4px 0 0;transform-origin:bottom;transition-delay:.25s;"></div>
+              <span style="font-size:.62rem;color:var(--n900);">Feb</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <span class="bar-val" style="font-size:.72rem;font-weight:700;color:var(--green);">~750</span>
+              <div class="bar-fill" style="width:100%;height:90px;background:var(--green);border-radius:4px 4px 0 0;transform-origin:bottom;transition-delay:.4s;"></div>
+              <span style="font-size:.62rem;color:var(--n900);">Mar</span>
+            </div>
+          </div>
+          <div style="font-size:.75rem;color:var(--n700);line-height:1.5;">Volume grew <strong style="color:var(--green);">3.75× in 3 months</strong> — your team is bringing more of their work into DevRev, not less.</div>
+        </div>
+
+        <!-- Resolution Time -->
+        <div style="background:linear-gradient(135deg,rgba(255,224,0,.06) 0%,rgba(255,224,0,.01) 100%);border:1px solid rgba(255,224,0,.2);border-radius:14px;padding:20px 24px;">
+          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--n900);margin-bottom:14px;">Avg Resolution Time — Jan → Mar 2026</div>
+          <div style="display:flex;align-items:flex-end;gap:8px;height:90px;margin-bottom:10px;">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <span class="bar-val" style="font-size:.72rem;font-weight:700;color:var(--red);">~13h</span>
+              <div class="bar-fill" style="width:100%;height:90px;background:var(--red);border-radius:4px 4px 0 0;transform-origin:bottom;"></div>
+              <span style="font-size:.62rem;color:var(--n900);">Jan</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <span class="bar-val" style="font-size:.72rem;font-weight:700;color:var(--orange);">~7h</span>
+              <div class="bar-fill" style="width:100%;height:48px;background:var(--orange);border-radius:4px 4px 0 0;transform-origin:bottom;transition-delay:.25s;"></div>
+              <span style="font-size:.62rem;color:var(--n900);">Feb</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <span class="bar-val" style="font-size:.72rem;font-weight:700;color:var(--green);">~3–4h</span>
+              <div class="bar-fill" style="width:100%;height:24px;background:var(--green);border-radius:4px 4px 0 0;transform-origin:bottom;transition-delay:.4s;"></div>
+              <span style="font-size:.62rem;color:var(--n900);">Mar</span>
+            </div>
+          </div>
+          <div style="font-size:.75rem;color:var(--n700);line-height:1.5;">Resolution time dropped <strong style="color:var(--yellow);">~70% in the same window</strong> — handling more, faster, every single month.</div>
+        </div>
+      </div>
+
+      <!-- The punchline -->
+      <div style="background:var(--n1300);border:1px solid var(--border-dim);border-radius:12px;padding:18px 28px;display:flex;align-items:center;gap:28px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:260px;">
+          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--yellow);margin-bottom:6px;">The value proposition in one sentence</div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--white);line-height:1.4;">As your ticket volume grew 3.75×, your resolution time <em style="color:var(--green);">fell 70%.</em></div>
+          <div style="font-size:.78rem;color:var(--n700);margin-top:6px;line-height:1.5;">That's not luck. It's the combination of SLA enforcement, workflow automation, and structured escalation paths that DevRev's platform is built around. Your team is doing more, better, with the same people.</div>
+        </div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <div style="font-size:2.2rem;font-weight:800;color:var(--green);line-height:1;"><span data-count="100" data-delay="100">0</span>%</div>
+            <div style="font-size:.62rem;color:var(--n900);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-top:4px;">SLA compliance</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:2.2rem;font-weight:800;color:var(--green);line-height:1;"><span data-count="0" data-delay="300">0</span>%</div>
+            <div style="font-size:.62rem;color:var(--n900);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-top:4px;">SLA breaches</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:2.2rem;font-weight:800;color:var(--yellow);line-height:1;"><span data-count="150" data-delay="200">0</span></div>
+            <div style="font-size:.62rem;color:var(--n900);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-top:4px;">active users</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>3 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 4 — PLATFORM METRICS ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 4 of 10</h2><h1>Q1 Platform Metrics</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="kpi-grid" style="margin-bottom:22px;">
+        <div class="kpi-card">
+          <div class="kpi-label">Avg resolution time</div>
+          <div class="kpi-value" style="color:var(--green);">~3–4h</div>
+          <div class="kpi-sub">Down from ~13h in Jan · <span class="up">−70%</span></div>
+          <div class="kpi-bar bar-green"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg first response time</div>
+          <div class="kpi-value" style="color:var(--green);">~30min</div>
+          <div class="kpi-sub">Down from ~2h in Jan · <span class="up">−75%</span></div>
+          <div class="kpi-bar bar-yellow"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">SLA compliance</div>
+          <div class="kpi-value" style="color:var(--green);"><span data-count="100" data-delay="150">0</span>%</div>
+          <div class="kpi-sub">All tiers · all quarter</div>
+          <div class="kpi-bar bar-green"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">SLA breach rate</div>
+          <div class="kpi-value" style="color:var(--green);">0%</div>
+          <div class="kpi-sub">Zero breaches Feb – Mar</div>
+          <div class="kpi-bar bar-blue"></div>
+        </div>
+      </div>
+
+      <div class="two-col" style="gap:28px;align-items:start;">
+        <div>
+          <p class="section-title">Activation depth</p>
+          <div class="prog-item">
+            <div class="prog-label"><span>Core ticketing + SLA enforcement</span><span class="tag tag-green">Live</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:97%;background:var(--green);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>Salesforce AirSync (bidirectional)</span><span class="tag tag-green">Live</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:88%;background:var(--green);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>Customer portal (cx.sysdig.com)</span><span class="tag tag-green">Live</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:85%;background:var(--green);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>Workflows & automations</span><span class="tag tag-green">Scaling</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:75%;background:var(--yellow);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>Knowledge base (KCS model)</span><span class="tag tag-yellow">Growing</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:60%;background:var(--yellow);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>Dashboards & analytics</span><span class="tag tag-orange">Enablement needed</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:40%;background:var(--orange);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>IBM / ServiceNow integration</span><span class="tag tag-red">Blocked (IBM side)</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:50%;background:var(--red);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>Computer (AI teammate)</span><span class="tag tag-purple">Limited · expansion pending</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:25%;background:var(--purple);"></div></div>
+          </div>
+        </div>
+        <div>
+          <p class="section-title">Growth signals this quarter</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-green">✓</span><span><strong>Active users climbed from ~80 to ~150</strong> Feb → Mar — nearly doubling without any mandate from leadership. Organic adoption.</span></li>
+            <li><span class="icon icon-green">✓</span><span><strong>Workflow creation accelerating.</strong> The team is building automations — not just using the product reactively. This is a strong depth-of-adoption signal.</span></li>
+            <li><span class="icon icon-green">✓</span><span><strong>KB articles growing.</strong> KCS method taking hold — agents writing articles at ticket close. ~20–40 new articles created in March alone.</span></li>
+            <li><span class="icon icon-green">✓</span><span><strong>Ticket deflection (L90D) trending down.</strong> Fewer tickets being routed to deflection — meaning the team is handling more through primary channels with confidence.</span></li>
+          </ul>
+          <div class="callout callout-green" style="margin-top:14px;">
+            <strong>What the data says:</strong> Your team chose to process more through DevRev — voluntarily — even during a quarter when trust was still being rebuilt. That's the most honest adoption signal we have.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>4 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 5 — THE RECOVERY STORY ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 5 of 10</h2><h1>From Stressed to Restored — The Q1 Journey</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="two-col" style="gap:32px;align-items:start;">
+        <div>
+          <p class="section-title">What happened — and how we fixed it</p>
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-dot done"></div>
+              <div class="tl-content">
+                <div class="tl-date">Oct 27, 2025 — Go-live</div>
+                <div class="tl-label">Sysdig live on DevRev</div>
+                <div class="tl-desc">26K Salesforce cases migrated via Airdrop · Custom portal cx.sysdig.com live · SLA plan active</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot risk"></div>
+              <div class="tl-content">
+                <div class="tl-date">Nov–Dec 2025 — Turbulence begins</div>
+                <div class="tl-label">Email config blind spot · Merge ticket bug · Sys-user workflow failures</div>
+                <div class="tl-desc">MX record issue meant Sysdig flew blind on email routing for weeks. Merge snap-in bug broke reply functionality — customers saw no responses. System users not triggering workflow events caused silent automation failures.</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot risk"></div>
+              <div class="tl-content">
+                <div class="tl-date">Feb 2, 2026 — Account enters Stressed state</div>
+                <div class="tl-label">Friction score elevated · Hypercare escalated to weekly cadence</div>
+                <div class="tl-desc">High friction (1.315), low utilization. Mark Czarnecki and the hypercare team activated weekly reviews with Michelle, Patrick, and Anthony. DevRev team: Ale, Rodrigo, Roberto, Julian, Franco, Poli, Kevin.</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot done"></div>
+              <div class="tl-content">
+                <div class="tl-date">Jan–Mar 2026 — Hypercare cadence</div>
+                <div class="tl-label">14 meetings. 14 weeks of showing up.</div>
+                <div class="tl-desc">Weekly Hypercare Reviews + weekly CSM syncs running simultaneously. Every open bug tracked, every friction point documented, every fix confirmed in-session.</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot done"></div>
+              <div class="tl-content">
+                <div class="tl-date">Mar 25, 2026 — Michelle's acknowledgment</div>
+                <div class="tl-label">Account restored · Trust visibly rebuilding</div>
+                <div class="tl-desc">"I just wanna say on this call, thank you very much for everything you guys have done... the partnership has really made it worth dealing with all of it." — Michelle Fogwell</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot active"></div>
+              <div class="tl-content">
+                <div class="tl-date">Q2 2026 — Where we are now</div>
+                <div class="tl-label">Restored state · Cadence shifting to BiWeekly · Onsite planned</div>
+                <div class="tl-desc">In-person onsite (Ale + Erez visiting Sysdig HQ) planned for April/May 2026. Anthony Field's Computer expansion evaluation underway.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="section-title">Michelle's words at the March 25 Hypercare</p>
+          <div class="quote-block" style="border-left-color:var(--green);">
+            "the amount of fires coming at us has slowed down, which is great."
+            <div class="quote-attr">— Michelle Fogwell, Mar 25 Hypercare Review</div>
+          </div>
+          <div class="quote-block" style="margin-top:10px;">
+            "I just wanna say on this call, thank you very much for everything you guys have done. I know there's still some stuff to work through, but it feels less like fires every day, which is wonderful."
+            <div class="quote-attr">— Michelle Fogwell, Mar 25 Hypercare Review</div>
+          </div>
+          <div class="quote-block" style="margin-top:10px;">
+            "the partnership has really made it worth dealing with all of it and everything. So thank you to all of you on the call for just putting a lot of work into us."
+            <div class="quote-attr">— Michelle Fogwell, Mar 25 Hypercare Review</div>
+          </div>
+          <div class="callout callout-yellow" style="margin-top:14px;">
+            <strong>What drove the recovery:</strong> A dedicated Hypercare team showing up every single week — not to report status, but to close issues. 14 meetings. 13 open bugs tracked. Every fix validated live with the team.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>5 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 6 — OPEN RISKS ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 6 of 10</h2><h1>Open Risks &amp; What We're Doing About Them</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="two-col" style="gap:28px;align-items:start;">
+        <div>
+          <p class="section-title">Risk register — Q2 2026</p>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="risk-row">
+              <div class="risk-badge risk-high">High</div>
+              <div class="risk-text"><strong>EMEA team trust deficit</strong> — The EMEA support team has the most unresolved grievances. Patrick: <em>"they're the ones who have aired the most grievances."</em> The in-person onsite is the most important near-term action.</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge risk-high">High</div>
+              <div class="risk-text"><strong>IBM / ServiceNow integration stalled</strong> — Sysdig has done their part. IBM hasn't responded. Management escalations ongoing. Each week this stays open, it weakens Sysdig's internal confidence in the platform.</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge risk-high">High</div>
+              <div class="risk-text"><strong>AI compliance opt-out request (TKT-56344)</strong> — A Sysdig downstream customer requires all AI to be disabled for their workspace. DevRev needs a clean, documented runbook for this — it's a compliance prerequisite, not optional.</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge risk-med">Med</div>
+              <div class="risk-text"><strong>Dashboards gap for Patrick</strong> — Analytics needs not fully met. A second enablement session is in flight but must close in Q2 to stop becoming a recurring frustration.</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge risk-med">Med</div>
+              <div class="risk-text"><strong>Computer expansion gated on support satisfaction</strong> — Anthony Field's decision: <em>"If I can't get even support, who is the main consumer, to be happy — there's no way I can expand."</em></div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge risk-low">Low</div>
+              <div class="risk-text"><strong>Glean displacement risk</strong> — ~100 Glean seats, 2 years of investment, custom agents built. Sysdig's support team strongly prefers it for contextual queries. Computer needs a differentiated pitch.</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="section-title">What we're actively doing</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-yellow">→</span><span><strong>In-person onsite (Apr/May 2026).</strong> Ale + Erez are coming to Sysdig HQ. The goal is direct time with the EMEA team and a face-to-face trust conversation that can't happen over Google Meet.</span></li>
+            <li><span class="icon icon-yellow">→</span><span><strong>IBM escalation — joint management path.</strong> DevRev and Sysdig management are aligned. We're not letting this sit — next update on IBM's timeline due before the onsite.</span></li>
+            <li><span class="icon icon-yellow">→</span><span><strong>AI opt-out runbook in progress.</strong> TKT-56344 is with AAI team. This needs a documented answer, not a workaround. Target: confirmed process before end of Q2.</span></li>
+            <li><span class="icon icon-yellow">→</span><span><strong>Dashboards enablement session 2 in flight.</strong> Patrick's specific requirements are documented — second session is being scheduled now.</span></li>
+            <li><span class="icon icon-purple">★</span><span><strong>Computer 30-day pilot offer open.</strong> A free company-wide Computer pilot was offered to Anthony Field. His gate is clear — support team satisfaction. Q2 is when we close that gap and revisit.</span></li>
+          </ul>
+          <div class="callout callout-orange" style="margin-top:14px;">
+            <strong>The honest framing:</strong> The account is restored, not healed. The data is moving in the right direction. The onsite visit is the single most important action in Q2 — not a sales call, a relationship visit.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>6 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 7 — AI OPPORTUNITY ══ -->
+  <div class="slide">
+    <div class="slide-header" style="background:linear-gradient(90deg,#160d24 0%,#1a0a2e 100%);border-bottom:1px solid rgba(164,111,255,.3);">
+      <div class="logo-box" style="background:var(--purple-bg);border:1px solid rgba(164,111,255,.4);">
+        <svg viewBox="0 0 30 30" fill="none"><rect x="4" y="7" width="22" height="13" rx="2" stroke="#A46FFF" stroke-width="2"/><path d="M10 20v3M20 20v3M8 23h14" stroke="#A46FFF" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="13" r="2.5" fill="#A46FFF"/></svg>
+      </div>
+      <div><h2 style="color:var(--purple);">Phase 2 — AI Layer</h2><h1>The Computer Opportunity — Anthony's Decision</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="callout callout-purple" style="margin-bottom:20px;margin-top:0;">
+        <strong>The context:</strong> Anthony Field's role has expanded to a company-wide AI strategy mandate — consolidate tools, reduce fragmentation, identify what stays. He's evaluating Claude, Gemini, Glean, and ChatGPT. DevRev + Computer is already in the stack. The question isn't whether to use AI — it's <strong>which AI does what.</strong>
+      </div>
+      <div class="two-col" style="gap:28px;align-items:start;">
+        <div>
+          <p class="section-title">Where Computer is differentiated vs. Glean</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-purple">★</span><span><strong>Already knows your tickets.</strong> Computer has your full DevRev context — ticket history, customer relationships, SLA data, Salesforce sync. Glean has indexed documents. These aren't the same job.</span></li>
+            <li><span class="icon icon-purple">★</span><span><strong>Structured AI, not just semantic search.</strong> Computer queries your data with a SQL layer before answering — answers are grounded in your operational data, not document probability. Lower hallucination risk for operational queries.</span></li>
+            <li><span class="icon icon-purple">★</span><span><strong>Consolidation case.</strong> Sysdig is already paying for Computer (included in Ultimate) + Glean (~100 seats). Anthony's mandate is to consolidate — Computer is the path that removes a line item, not adds one.</span></li>
+            <li><span class="icon icon-blue">→</span><span><strong>Michelle already uses it.</strong> She generates trend reports on ticket themes with Computer. The support team has a power user — the opportunity is to turn that into a team habit.</span></li>
+          </ul>
+          <div class="callout callout-purple" style="margin-top:14px;">
+            <strong>Anthony's gate (his words):</strong> <em>"If I can't get even support, who is the main consumer, to be happy — there's no way I can expand."</em> Q2 is when we close that gate.
+          </div>
+        </div>
+        <div>
+          <p class="section-title">The 30-day pilot offer — what's on the table</p>
+          <div class="row-item"><div class="row-left">Scope</div><div class="row-right"><span class="tag tag-purple">Company-wide Computer access</span></div></div>
+          <div class="row-item"><div class="row-left">Duration</div><div class="row-right"><span class="tag tag-yellow">30 days free</span></div></div>
+          <div class="row-item"><div class="row-left">Eligibility</div><div class="row-right"><span class="tag tag-green">Confirmed (1yr+ customer)</span></div></div>
+          <div class="row-item"><div class="row-left">Champion</div><div class="row-right"><span style="font-size:.8rem;color:var(--n500);">Anthony Field · AI Strategy</span></div></div>
+          <div class="row-item"><div class="row-left">Expansion ACV</div><div class="row-right"><span class="tag tag-purple">$30,000 · OPP-4688</span></div></div>
+          <div class="row-item"><div class="row-left">Competing with</div><div class="row-right"><span style="font-size:.8rem;color:var(--n500);">Glean · Claude/Gemini (generic)</span></div></div>
+          <div class="row-item"><div class="row-left">Pilot next step due</div><div class="row-right"><span class="tag tag-orange">May 8, 2026</span></div></div>
+
+          <div class="callout callout-yellow" style="margin-top:14px;">
+            <strong>The pitch to Anthony:</strong> You want to consolidate. Computer is already included — no additional cost for the pilot. It covers the support ops use case that Glean doesn't. The only question is whether support is happy enough for you to say yes publicly. Let's make that happen in Q2.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>7 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 8 — GROWTH & EXPANSION ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 8 of 10</h2><h1>Growth &amp; Expansion Opportunities</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="two-col" style="gap:28px;align-items:start;">
+        <div>
+          <p class="section-title">Platform features not yet activated</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-blue">→</span><span><strong>AI ticket deflection via KB.</strong> The KCS article creation habit is forming — once the knowledge base reaches critical mass, AI deflection turns on automatically. Every article written now compounds future deflection value.</span></li>
+            <li><span class="icon icon-blue">→</span><span><strong>Japanese language support.</strong> An open request exists for Japanese locale enablement — important for Sysdig's APAC support team. This should be on the Q2 delivery list.</span></li>
+            <li><span class="icon icon-blue">→</span><span><strong>S3 bucket upload integration.</strong> ~4GB file upload from the ticket form directly to Sysdig-owned S3. A strong workflow improvement for teams handling large customer artifacts.</span></li>
+            <li><span class="icon icon-blue">→</span><span><strong>PagerDuty Snap-In.</strong> Enablement ticket (TKT-30858) open — activating this closes a gap for on-call escalation workflows and reduces manual handoffs.</span></li>
+          </ul>
+        </div>
+        <div>
+          <p class="section-title">How Sysdig compares to peers</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-yellow">★</span><span>At 100% SLA compliance and 0% breach rate just 5 months post-go-live, <strong>Sysdig is in the top tier of implementations at this tenure.</strong> The turbulence didn't stop the operational rigor — it tested it.</span></li>
+            <li><span class="icon icon-yellow">★</span><span>A 70% drop in resolution time while volume grew 3.75× is a benchmark outcome. <strong>Most customers see one or the other — volume growth or speed improvement</strong> — rarely both simultaneously.</span></li>
+            <li><span class="icon icon-yellow">★</span><span>With $729M raised, ~700 employees, and a security software market expanding rapidly — <strong>Sysdig's support volume will continue growing.</strong> The infrastructure you're building now is the foundation for that scale.</span></li>
+            <li><span class="icon icon-yellow">★</span><span>Anthony Field's AI consolidation mandate creates a <strong>genuine opportunity to reduce vendor spend</strong> while expanding DevRev's footprint. The timing is rare — and it's right now.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>8 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 9 — Q2 JOINT PLAN ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 9 of 10</h2><h1>Q2 2026 Joint Plan</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="three-col" style="gap:14px;margin-bottom:18px;">
+        <div class="priority-card">
+          <div class="p-num">Priority 1</div>
+          <h3>In-person onsite — trust reset</h3>
+          <p>Ale + Erez visit Sysdig HQ (Apr/May 2026). Primary objective: direct time with the EMEA support team. No sales agenda. A relationship visit — acknowledge the hard Q1, show the trajectory, listen. This is the highest-leverage action we have.</p>
+          <div class="owner-row">
+            <span class="tag tag-yellow">DevRev: Ale + Erez</span>
+            <span class="tag tag-blue">Sysdig: Michelle + EMEA</span>
+          </div>
+          <div style="margin-top:8px;font-size:.7rem;color:var(--n700);">Target: May 2026 · Success: EMEA team sentiment shift</div>
+        </div>
+        <div class="priority-card">
+          <div class="p-num">Priority 2</div>
+          <h3>Close the dashboards + IBM gaps</h3>
+          <p>Deliver Patrick's second analytics enablement session and document his full requirements. Simultaneously push for an IBM ServiceNow status update — this must not enter Q3 unresolved. These two items are the most visible unmet asks.</p>
+          <div class="owner-row">
+            <span class="tag tag-yellow">DevRev: Rodrigo + AAI</span>
+            <span class="tag tag-blue">Sysdig: Patrick Hargett</span>
+          </div>
+          <div style="margin-top:8px;font-size:.7rem;color:var(--n700);">Target: Jun 2026 · Metric: Patrick signs off on analytics</div>
+        </div>
+        <div class="priority-card">
+          <div class="p-num">Priority 3</div>
+          <h3>Activate Computer pilot with Anthony</h3>
+          <p>Follow up on the 30-day free pilot offer (next step: May 8). Run the Glean side-by-side listening session with Patrick's power users. Make the consolidation case with Anthony directly — and close OPP-4688 before end of Q2.</p>
+          <div class="owner-row">
+            <span class="tag tag-purple">DevRev: Erez + Ale</span>
+            <span class="tag tag-blue">Sysdig: Anthony Field</span>
+          </div>
+          <div style="margin-top:8px;font-size:.7rem;color:var(--n700);">Target: May 31, 2026 · OPP-4688 · $30K ACV</div>
+        </div>
+      </div>
+
+      <div class="two-col" style="gap:24px;align-items:start;">
+        <div>
+          <p class="section-title">Additional Q2 actions</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-blue">→</span><span>Deliver AI opt-out compliance runbook (TKT-56344) — document the process for disabling all AI features per workspace.</span></li>
+            <li><span class="icon icon-blue">→</span><span>Enable Japanese locale — activate for APAC support team (open request).</span></li>
+            <li><span class="icon icon-blue">→</span><span>Schedule Glean power-user listening session with Patrick's team before the onsite.</span></li>
+            <li><span class="icon icon-blue">→</span><span>Validate merge snap-in fix is fully resolved — no silent reply failures.</span></li>
+          </ul>
+        </div>
+        <div class="callout callout-yellow" style="margin-top:0;">
+          <strong>What success looks like at end of Q2:</strong> The EMEA team has had a face-to-face with Ale and Erez and sentiment is measurably better. Dashboards are closed. IBM ServiceNow has a resolution path. Anthony Field has run the 30-day Computer pilot and the expansion conversation is real. The account is no longer "restored" — it's thriving.
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">Q2 2026 · Apr – Jun 2026</span><span>9 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 10 — THANK YOU ══ -->
+  <div class="slide">
+    <div class="cover" style="gap:0;">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 40%,rgba(255,224,0,.06) 0%,transparent 65%),radial-gradient(ellipse 35% 30% at 80% 75%,rgba(160,237,26,.05) 0%,transparent 60%);pointer-events:none;"></div>
+
+      <div style="position:relative;margin-bottom:24px;">
+        <svg width="60" height="60" viewBox="0 0 40 40" fill="none">
+          <circle cx="14" cy="20" r="8" stroke="#FFE000" stroke-width="2" fill="none"/>
+          <circle cx="14" cy="20" r="2.5" fill="#FFE000"/>
+          <polygon points="26,12 38,20 26,28" fill="none" stroke="#FFE000" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <h1 style="font-size:2.6rem;font-weight:800;letter-spacing:-.02em;margin-bottom:10px;position:relative;">Thank you, <span style="color:var(--yellow);">Sysdig.</span></h1>
+      <p style="font-size:1rem;color:var(--n700);max-width:560px;line-height:1.7;margin-bottom:12px;position:relative;">Q1 was hard. The data shows it — and so does the recovery. Michelle said it best: <em style="color:var(--n500);">"the partnership has really made it worth dealing with all of it."</em></p>
+      <p style="font-size:.9rem;color:var(--n900);max-width:500px;line-height:1.6;margin-bottom:36px;position:relative;">We're not done yet. The onsite is next. Let's finish what we started.</p>
+
+      <div class="cover-divider" style="position:relative;"></div>
+
+      <div style="display:flex;gap:20px;margin-top:24px;position:relative;flex-wrap:wrap;justify-content:center;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 22px;text-align:left;min-width:200px;">
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--yellow);margin-bottom:7px;">DevRev Platform</div>
+          <div style="font-size:.86rem;color:var(--white);font-weight:600;margin-bottom:4px;">devrev.ai</div>
+          <div style="font-size:.73rem;color:var(--n700);line-height:1.5;">Support · AI Agent · Customer360<br/>Workflows · Salesforce AirSync · Analytics</div>
+        </div>
+        <div style="background:var(--card);border:1px solid rgba(164,111,255,.3);border-radius:14px;padding:18px 22px;text-align:left;min-width:200px;">
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--purple);margin-bottom:7px;">Computer — AI Teammate</div>
+          <div style="font-size:.86rem;color:var(--white);font-weight:600;margin-bottom:4px;">devrev.ai/computer</div>
+          <div style="font-size:.73rem;color:var(--n700);line-height:1.5;">Ask · Summarize · Route · Draft<br/>30-day company-wide pilot available</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 22px;text-align:left;min-width:200px;">
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--n700);margin-bottom:7px;">Your Team</div>
+          <div style="font-size:.86rem;color:var(--white);font-weight:600;margin-bottom:4px;">Alejandro Costa · Erez Schanin</div>
+          <div style="font-size:.73rem;color:var(--n700);line-height:1.5;">alejandro.costa@devrev.ai<br/>erez.schanin@devrev.ai</div>
+        </div>
+      </div>
+
+      <p style="font-size:.7rem;color:var(--n900);margin-top:32px;position:relative;">Sysdig × DevRev · QBR Apr 2026</p>
+      <p style="font-size:.6rem;color:var(--n1100);margin-top:8px;position:relative;display:flex;align-items:center;gap:6px;">
+        <svg width="11" height="11" viewBox="0 0 40 40" fill="none"><circle cx="14" cy="20" r="8" stroke="#4A4748" stroke-width="2.5" fill="none"/><circle cx="14" cy="20" r="2.5" fill="#4A4748"/><polygon points="26,12 38,20 26,28" fill="none" stroke="#4A4748" stroke-width="2.5" stroke-linejoin="round"/></svg>
+        Made by Computer
+      </p>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<div class="nav">
+  <button id="prev" disabled>← Previous</button>
+  <div class="dots" id="dots"></div>
+  <button id="next">Next →</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.deck > .slide'));
+  const dotsEl = document.getElementById('dots');
+  const prev   = document.getElementById('prev');
+  const next   = document.getElementById('next');
+  let cur = 0;
+
+  function animateCounter(el, target, duration, suffix) {
+    const start = performance.now();
+    const update = (now) => {
+      const p = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(ease * target) + (suffix || '');
+      if (p < 1) requestAnimationFrame(update);
+    };
+    requestAnimationFrame(update);
+  }
+
+  function runCounters(slide) {
+    slide.querySelectorAll('[data-count]').forEach(el => {
+      const target = parseFloat(el.dataset.count);
+      const suffix = el.dataset.suffix || '';
+      const delay  = parseFloat(el.dataset.delay || 0);
+      setTimeout(() => animateCounter(el, target, 900, suffix), delay);
+    });
+  }
+
+  function animateBarVals(slide) {
+    slide.querySelectorAll('.bar-val').forEach((el, i) => {
+      el.style.opacity = '0';
+      setTimeout(() => { el.style.transition = 'opacity .3s ease'; el.style.opacity = '1'; }, 150 + i * 150);
+    });
+  }
+
+  function onEnter(slide) {
+    runCounters(slide);
+    animateBarVals(slide);
+  }
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => go(i));
+    dotsEl.appendChild(d);
+  });
+
+  function go(n) {
+    slides[cur].classList.remove('active');
+    dotsEl.children[cur].classList.remove('active');
+    cur = n;
+    slides[cur].classList.add('active');
+    dotsEl.children[cur].classList.add('active');
+    prev.disabled = cur === 0;
+    next.disabled = cur === slides.length - 1;
+    onEnter(slides[cur]);
+  }
+
+  prev.addEventListener('click', () => { if (cur > 0) go(cur - 1); });
+  next.addEventListener('click', () => { if (cur < slides.length - 1) go(cur + 1); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { if (cur < slides.length - 1) go(cur + 1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { if (cur > 0) go(cur - 1); }
+  });
+
+  onEnter(slides[0]);
+</script>
+</body>
+</html>
