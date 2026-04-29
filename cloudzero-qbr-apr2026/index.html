@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CloudZero — QBR Apr 2026</title>
+  <style>
+    /* ── DevRev Brand Tokens ── */
+    :root {
+      --black:      #000000;
+      --n1300:      #211E20;
+      --n1200:      #333132;
+      --n1100:      #4A4748;
+      --n900:       #737072;
+      --n700:       #A5A0A3;
+      --n500:       #DEDCDD;
+      --white:      #FFFFFF;
+      --yellow:     #FFE000;
+      --yellow-dim: #F6C800;
+      --yellow-bg:  rgba(255,224,0,.08);
+      --green:      #A0ED1A;
+      --green-dim:  #74AE00;
+      --green-bg:   rgba(160,237,26,.08);
+      --red:        #FF342D;
+      --red-bg:     rgba(255,52,45,.08);
+      --blue:       #199BFF;
+      --blue-bg:    rgba(25,155,255,.08);
+      --purple:     #A46FFF;
+      --purple-bg:  rgba(164,111,255,.08);
+      --orange:     #FF984A;
+      --orange-bg:  rgba(255,152,74,.08);
+      --surface:    #111010;
+      --card:       #1A1819;
+      --border:     #2E2B2D;
+      --border-dim: #3D393B;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'New Hero', 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--black);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .deck { width: 100%; max-width: 1100px; position: relative; }
+
+    .slide {
+      display: none;
+      background: var(--surface);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px var(--border), 0 24px 64px rgba(0,0,0,.6);
+      min-height: 620px;
+      position: relative;
+    }
+    .slide.active { display: flex; flex-direction: column; }
+
+    /* Nav */
+    .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; gap: 16px; }
+    .nav button {
+      background: var(--n1200); color: var(--white); border: 1px solid var(--border);
+      padding: 10px 28px; border-radius: 8px; font-size: .9rem; font-weight: 600;
+      cursor: pointer; transition: background .15s, border-color .15s, color .15s;
+    }
+    .nav button:hover { background: var(--n1100); border-color: var(--yellow); color: var(--yellow); }
+    .nav button:disabled { opacity: .25; cursor: default; }
+    .dots { display: flex; gap: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--n1100); cursor: pointer; transition: background .2s, transform .2s; }
+    .dot.active { background: var(--yellow); transform: scale(1.4); }
+
+    /* Slide header */
+    .slide-header {
+      background: var(--n1300); color: var(--white);
+      padding: 22px 40px 18px; display: flex; align-items: center; gap: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .slide-header .logo-box {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--yellow-bg); border: 1px solid rgba(255,224,0,.2);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .slide-header h2 { font-size: .75rem; font-weight: 600; color: var(--yellow); letter-spacing: .1em; text-transform: uppercase; }
+    .slide-header h1 { font-size: 1.45rem; font-weight: 700; color: var(--white); margin-top: 2px; }
+    .slide-body { padding: 26px 40px; flex: 1; overflow-y: auto; }
+
+    /* Cover */
+    .cover {
+      background: var(--black); color: var(--white);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center; padding: 52px 48px;
+      position: relative; overflow: hidden; min-height: 620px;
+    }
+    .cover::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 30%, rgba(255,224,0,.07) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 35% at 85% 75%, rgba(160,237,26,.04) 0%, transparent 60%),
+        radial-gradient(ellipse 30% 25% at 10% 85%, rgba(25,155,255,.03) 0%, transparent 60%);
+    }
+    .cover-eyebrow { font-size: .7rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--n900); margin-bottom: 18px; position: relative; }
+    .cover-logo { margin-bottom: 24px; display: flex; align-items: center; gap: 14px; position: relative; }
+    .cover-logo .brand-name { font-size: 1.2rem; font-weight: 300; letter-spacing: .22em; text-transform: uppercase; color: var(--n700); }
+    .cover h1 { font-size: 2.7rem; font-weight: 800; line-height: 1.12; max-width: 720px; margin-bottom: 12px; position: relative; letter-spacing: -.02em; }
+    .cover h1 span { color: var(--yellow); }
+    .cover .sub { font-size: .98rem; color: var(--n700); margin-bottom: 40px; line-height: 1.65; position: relative; max-width: 580px; }
+    .cover-meta { display: flex; gap: 36px; margin-top: 6px; position: relative; }
+    .meta-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .meta-label { font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--n900); }
+    .meta-val { font-size: .92rem; font-weight: 700; color: var(--white); }
+    .cover-divider { width: 48px; height: 1px; background: var(--border-dim); margin: 24px auto; position: relative; }
+
+    /* Layouts */
+    .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* KPI grid */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    .kpi-grid.cols-3 { grid-template-columns: repeat(3,1fr); }
+    .kpi-grid.cols-2 { grid-template-columns: repeat(2,1fr); }
+    .kpi-card {
+      background: var(--card); border-radius: 12px; padding: 16px 16px 14px;
+      border: 1px solid var(--border); position: relative;
+    }
+    .kpi-label { font-size: .63rem; text-transform: uppercase; letter-spacing: .09em; color: var(--n900); margin-bottom: 8px; font-weight: 700; }
+    .kpi-value { font-size: 1.85rem; font-weight: 800; color: var(--white); line-height: 1; }
+    .kpi-delta { margin-top: 5px; font-size: .72rem; font-weight: 700; }
+    .kpi-sub   { font-size: .67rem; color: var(--n900); margin-top: 4px; }
+    .kpi-bar   { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; border-radius: 0 0 12px 12px; }
+    .up { color: var(--green); } .down { color: var(--red); } .neut { color: var(--n700); }
+    .bar-yellow { background: var(--yellow); } .bar-green { background: var(--green); }
+    .bar-red { background: var(--red); } .bar-blue { background: var(--blue); }
+    .bar-purple { background: var(--purple); } .bar-orange { background: var(--orange); }
+
+    /* Section title */
+    .section-title {
+      font-size: .63rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .13em; color: var(--yellow); margin-bottom: 10px;
+      padding-bottom: 6px; border-bottom: 1px solid var(--border);
+    }
+
+    /* Bullets */
+    .bullet-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+    .bullet-list li { display: flex; align-items: flex-start; gap: 10px; font-size: .83rem; color: var(--n500); line-height: 1.5; }
+    .bullet-list li .icon {
+      width: 20px; height: 20px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; flex-shrink: 0;
+      margin-top: 2px; font-size: .6rem; font-weight: 800;
+    }
+    .icon-yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(255,224,0,.25); }
+    .icon-green  { background: var(--green-bg);  color: var(--green);  border: 1px solid rgba(160,237,26,.25); }
+    .icon-red    { background: var(--red-bg);    color: var(--red);    border: 1px solid rgba(255,52,45,.25); }
+    .icon-blue   { background: var(--blue-bg);   color: var(--blue);   border: 1px solid rgba(25,155,255,.25); }
+    .icon-orange { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(255,152,74,.25); }
+    .icon-purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(164,111,255,.25); }
+    strong { color: var(--white); font-weight: 700; }
+
+    /* Progress bar */
+    .prog-item { margin-bottom: 13px; }
+    .prog-label { display: flex; justify-content: space-between; font-size: .78rem; font-weight: 600; color: var(--n500); margin-bottom: 5px; }
+    .prog-track { background: var(--n1200); border-radius: 99px; height: 6px; overflow: hidden; }
+    .prog-fill { height: 100%; border-radius: 99px; width: 0; transition: width .9s cubic-bezier(.22,1,.36,1); }
+    .slide.active .prog-fill { width: var(--w); }
+
+    /* Tags */
+    .tag { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: .63rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    .tag-green  { background: var(--green-bg);  color: var(--green);  border: 1px solid rgba(160,237,26,.3); }
+    .tag-yellow { background: var(--yellow-bg); color: var(--yellow-dim); border: 1px solid rgba(255,224,0,.3); }
+    .tag-red    { background: var(--red-bg);    color: var(--red);    border: 1px solid rgba(255,52,45,.3); }
+    .tag-blue   { background: var(--blue-bg);   color: var(--blue);   border: 1px solid rgba(25,155,255,.3); }
+    .tag-purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(164,111,255,.3); }
+    .tag-orange { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(255,152,74,.3); }
+
+    /* Timeline */
+    .timeline { display: flex; flex-direction: column; position: relative; }
+    .timeline::before { content: ''; position: absolute; left: 17px; top: 0; bottom: 0; width: 1px; background: var(--border); }
+    .tl-item { display: flex; align-items: flex-start; gap: 12px; position: relative; padding-bottom: 14px; }
+    .tl-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--surface); flex-shrink: 0; margin-top: 4px; z-index: 1; }
+    .tl-dot.done   { background: var(--green);  box-shadow: 0 0 0 2px rgba(160,237,26,.3); }
+    .tl-dot.active { background: var(--yellow); box-shadow: 0 0 0 2px rgba(255,224,0,.3); }
+    .tl-dot.risk   { background: var(--red);    box-shadow: 0 0 0 2px rgba(255,52,45,.3); }
+    .tl-content .tl-date  { font-size: .63rem; color: var(--n900); font-weight: 600; }
+    .tl-content .tl-label { font-size: .82rem; color: var(--white); font-weight: 700; margin-top: 1px; }
+    .tl-content .tl-desc  { font-size: .72rem; color: var(--n700); margin-top: 2px; line-height: 1.4; }
+
+    /* Row items */
+    .row-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .81rem; }
+    .row-item:last-child { border-bottom: none; }
+    .row-left { color: var(--n500); font-weight: 500; }
+    .row-right { display: flex; align-items: center; gap: 8px; }
+
+    /* Priority card */
+    .priority-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 16px; height: 100%; }
+    .priority-card .p-num { font-size: .63rem; font-weight: 800; color: var(--yellow); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 5px; }
+    .priority-card h3 { font-size: .9rem; color: var(--white); font-weight: 700; margin-bottom: 7px; }
+    .priority-card p  { font-size: .75rem; color: var(--n700); line-height: 1.5; margin-bottom: 10px; }
+    .priority-card .owner-row { display: flex; gap: 5px; flex-wrap: wrap; }
+
+    /* Callout */
+    .callout { border-radius: 10px; padding: 12px 16px; font-size: .8rem; line-height: 1.55; margin-top: 14px; }
+    .callout-yellow { background: var(--yellow-bg); border-left: 3px solid var(--yellow);  color: var(--n500); }
+    .callout-green  { background: var(--green-bg);  border-left: 3px solid var(--green);   color: var(--n500); }
+    .callout-red    { background: var(--red-bg);    border-left: 3px solid var(--red);     color: var(--n500); }
+    .callout-blue   { background: var(--blue-bg);   border-left: 3px solid var(--blue);    color: var(--n500); }
+    .callout-orange { background: var(--orange-bg); border-left: 3px solid var(--orange);  color: var(--n500); }
+    .callout-purple { background: var(--purple-bg); border-left: 3px solid var(--purple);  color: var(--n500); }
+
+    /* Quote block */
+    .quote-block {
+      background: var(--card); border-left: 3px solid var(--yellow);
+      border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: .8rem;
+      font-style: italic; color: var(--n500); line-height: 1.6; margin: 10px 0;
+    }
+    .quote-attr { font-style: normal; font-size: .7rem; color: var(--n900); margin-top: 6px; font-weight: 700; }
+
+    /* Bar chart */
+    .bar-chart { display: flex; align-items: flex-end; gap: 14px; height: 110px; margin: 8px 0 14px; }
+    .bar-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .bar-col .bar-val   { font-size: .73rem; font-weight: 700; color: var(--white); }
+    .bar-col .bar-fill  { width: 100%; border-radius: 4px 4px 0 0; transform-origin: bottom; transform: scaleY(0); transition: transform .7s cubic-bezier(.22,1,.36,1); }
+    .bar-col .bar-month { font-size: .65rem; color: var(--n900); font-weight: 600; }
+    .slide.active .bar-fill { transform: scaleY(1); }
+    .bar-col:nth-child(1) .bar-fill { transition-delay: .10s; }
+    .bar-col:nth-child(2) .bar-fill { transition-delay: .25s; }
+    .bar-col:nth-child(3) .bar-fill { transition-delay: .40s; }
+    .bar-col:nth-child(4) .bar-fill { transition-delay: .55s; }
+
+    /* Slide footer */
+    .slide-footer {
+      padding: 10px 40px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: .68rem; color: var(--n900); background: var(--n1300);
+    }
+    .slide-footer .period { font-weight: 700; color: var(--yellow); }
+
+    /* ── Animations ── */
+    .slide-body { opacity: 0; transform: translateY(8px); transition: opacity .35s ease, transform .35s ease; }
+    .slide.active .slide-body { opacity: 1; transform: translateY(0); }
+
+    .bullet-list li { opacity: 0; transform: translateY(10px); transition: opacity .4s ease, transform .4s ease; }
+    .slide.active .bullet-list li { opacity: 1; transform: translateY(0); }
+    .bullet-list li:nth-child(1) { transition-delay: .06s; }
+    .bullet-list li:nth-child(2) { transition-delay: .16s; }
+    .bullet-list li:nth-child(3) { transition-delay: .26s; }
+    .bullet-list li:nth-child(4) { transition-delay: .36s; }
+    .bullet-list li:nth-child(5) { transition-delay: .46s; }
+
+    .kpi-card { opacity: 0; transform: translateY(16px) scale(.97); transition: opacity .45s ease, transform .45s ease; }
+    .slide.active .kpi-card { opacity: 1; transform: translateY(0) scale(1); }
+    .kpi-grid .kpi-card:nth-child(1) { transition-delay: .08s; }
+    .kpi-grid .kpi-card:nth-child(2) { transition-delay: .20s; }
+    .kpi-grid .kpi-card:nth-child(3) { transition-delay: .32s; }
+    .kpi-grid .kpi-card:nth-child(4) { transition-delay: .44s; }
+
+    .priority-card { opacity: 0; transform: translateY(14px); transition: opacity .45s ease, transform .45s ease; }
+    .slide.active .priority-card { opacity: 1; transform: translateY(0); }
+    .three-col .priority-card:nth-child(1) { transition-delay: .08s; }
+    .three-col .priority-card:nth-child(2) { transition-delay: .20s; }
+    .three-col .priority-card:nth-child(3) { transition-delay: .32s; }
+
+    .tl-item { opacity: 0; transform: translateX(-10px); transition: opacity .4s ease, transform .4s ease; }
+    .slide.active .tl-item { opacity: 1; transform: translateX(0); }
+    .tl-item:nth-child(1) { transition-delay: .04s; }
+    .tl-item:nth-child(2) { transition-delay: .14s; }
+    .tl-item:nth-child(3) { transition-delay: .24s; }
+    .tl-item:nth-child(4) { transition-delay: .34s; }
+    .tl-item:nth-child(5) { transition-delay: .44s; }
+    .tl-item:nth-child(6) { transition-delay: .54s; }
+    .tl-item:nth-child(7) { transition-delay: .64s; }
+
+    .row-item { opacity: 0; transition: opacity .35s ease; }
+    .slide.active .row-item { opacity: 1; }
+    .row-item:nth-child(1)  { transition-delay: .05s; }
+    .row-item:nth-child(2)  { transition-delay: .12s; }
+    .row-item:nth-child(3)  { transition-delay: .19s; }
+    .row-item:nth-child(4)  { transition-delay: .26s; }
+    .row-item:nth-child(5)  { transition-delay: .33s; }
+    .row-item:nth-child(6)  { transition-delay: .40s; }
+    .row-item:nth-child(7)  { transition-delay: .47s; }
+    .row-item:nth-child(8)  { transition-delay: .54s; }
+    .row-item:nth-child(9)  { transition-delay: .61s; }
+    .row-item:nth-child(10) { transition-delay: .68s; }
+
+    .callout { opacity: 0; transition: opacity .5s .4s ease; }
+    .slide.active .callout { opacity: 1; }
+
+    /* Cover cascade */
+    .cover > * { opacity: 0; transform: translateY(18px); }
+    .slide.active .cover > *:nth-child(1) { animation: fadeUp .5s .05s ease forwards; }
+    .slide.active .cover > *:nth-child(2) { animation: fadeUp .5s .18s ease forwards; }
+    .slide.active .cover > *:nth-child(3) { animation: fadeUp .5s .30s ease forwards; }
+    .slide.active .cover > *:nth-child(4) { animation: fadeUp .5s .42s ease forwards; }
+    .slide.active .cover > *:nth-child(5) { animation: fadeUp .5s .52s ease forwards; }
+    .slide.active .cover > *:nth-child(6) { animation: fadeUp .5s .62s ease forwards; }
+    .slide.active .cover > *:nth-child(7) { animation: fadeUp .5s .72s ease forwards; }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+    /* Pulse dot for "live" indicator */
+    .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(160,237,26,.4); } 50% { box-shadow: 0 0 0 5px rgba(160,237,26,0); } }
+
+    /* Health badge */
+    .health-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--green-bg); border: 1px solid rgba(160,237,26,.3);
+      border-radius: 99px; padding: 5px 14px; font-size: .72rem; font-weight: 700; color: var(--green);
+    }
+
+    /* Stat row */
+    .stat-row { display: flex; gap: 16px; margin-bottom: 18px; }
+    .stat-pill {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; flex: 1; text-align: center;
+    }
+    .stat-pill .sp-val { font-size: 1.5rem; font-weight: 800; color: var(--white); line-height: 1; }
+    .stat-pill .sp-label { font-size: .62rem; color: var(--n900); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-top: 4px; }
+
+    /* Risk matrix */
+    .risk-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+    .risk-badge { flex-shrink: 0; padding: 3px 10px; border-radius: 6px; font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; min-width: 60px; text-align: center; }
+    .risk-high   { background: var(--red-bg); color: var(--red); border: 1px solid rgba(255,52,45,.3); }
+    .risk-med    { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(255,152,74,.3); }
+    .risk-low    { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(25,155,255,.3); }
+    .risk-text   { font-size: .8rem; color: var(--n500); line-height: 1.4; }
+    .risk-text strong { color: var(--white); }
+
+    /* Metric highlight bar */
+    .metric-bar-wrap { display: flex; flex-direction: column; gap: 4px; margin: 10px 0; }
+    .metric-bar-label { display: flex; justify-content: space-between; font-size: .75rem; color: var(--n500); font-weight: 600; }
+    .metric-bar-track { background: var(--n1200); border-radius: 4px; height: 28px; position: relative; overflow: hidden; }
+    .metric-bar-fill { height: 100%; border-radius: 4px; width: 0; transition: width 1s cubic-bezier(.22,1,.36,1); display: flex; align-items: center; padding-left: 10px; }
+    .slide.active .metric-bar-fill { width: var(--w); }
+    .metric-bar-fill span { font-size: .72rem; font-weight: 800; color: var(--black); white-space: nowrap; }
+  </style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- ══ COVER ══ -->
+  <div class="slide active">
+    <div class="cover">
+      <div class="cover-eyebrow">Quarterly Business Review · Apr 2026</div>
+      <div class="cover-logo">
+        <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+          <circle cx="14" cy="20" r="8" stroke="#FFE000" stroke-width="2" fill="none"/>
+          <circle cx="14" cy="20" r="2.5" fill="#FFE000"/>
+          <polygon points="26,12 38,20 26,28" fill="none" stroke="#FFE000" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-name">CloudZero</span>
+      </div>
+      <h1>Three months in.<br/><span>Let's talk about what's next.</span></h1>
+      <p class="sub">You went live on January 21. This is what you've built, what's still in flight, and where we take it from here.</p>
+      <div class="cover-divider"></div>
+      <div class="cover-meta">
+        <div class="meta-item"><span class="meta-label">Go-Live</span><span class="meta-val">Jan 21, 2026</span></div>
+        <div class="meta-item"><span class="meta-label">Period</span><span class="meta-val">Jan – Mar 2026</span></div>
+        <div class="meta-item"><span class="meta-label">Plan</span><span class="meta-val">Support Ultimate</span></div>
+        <div class="meta-item"><span class="meta-label">ACV</span><span class="meta-val">$135,000</span></div>
+        <div class="meta-item"><span class="meta-label">CSM</span><span class="meta-val">Alejandro Costa</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 1 — BUSINESS HIGHLIGHTS ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Before we begin</h2><h1>Business Highlights — Your Quarter</h1></div>
+    </div>
+    <div class="slide-body" style="display:flex;flex-direction:column;justify-content:center;gap:26px;">
+      <p style="font-size:.95rem;color:var(--n700);max-width:680px;line-height:1.65;">Before we dive into DevRev — we want to hear from you. Q1 was a big one for CloudZero. What's on your mind heading into Q2?</p>
+      <div class="three-col">
+        <div class="priority-card" style="border-top:3px solid var(--yellow);">
+          <div class="p-num">🏆 Wins</div>
+          <p style="margin-bottom:0;">New product launches, customer milestones, team growth? What went well this quarter?</p>
+        </div>
+        <div class="priority-card" style="border-top:3px solid var(--blue);">
+          <div class="p-num" style="color:var(--blue);">🔭 Focus for Q2</div>
+          <p style="margin-bottom:0;">New VP of CS incoming — what changes? Any market shifts or strategic initiatives accelerating?</p>
+        </div>
+        <div class="priority-card" style="border-top:3px solid var(--red);">
+          <div class="p-num" style="color:var(--red);">⚡ Pressures</div>
+          <p style="margin-bottom:0;">Volume spikes, team changes, anything creating friction in your support operation right now?</p>
+        </div>
+      </div>
+      <div class="callout callout-purple" style="max-width:760px;">
+        <strong>A question for this conversation:</strong> We know your team is leveraging Claude Enterprise broadly — and managing DevRev through MCP. As you head into Q2, <strong>how do you see DevRev's role evolving in this new model?</strong> We want to make sure the platform is positioned to complement, not compete with, the AI workflows you're already building.
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>1 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 2 — EXECUTIVE SUMMARY ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 2 of 10</h2><h1>Executive Summary</h1></div>
+    </div>
+    <div class="slide-body">
+      <div style="margin-bottom:18px;display:flex;align-items:center;gap:12px;">
+        <div class="health-badge"><span class="live-dot"></span> Account Health: Healthy</div>
+        <span style="font-size:.75rem;color:var(--n700);">Engagement: <strong style="color:var(--yellow);">Hot (42)</strong> &nbsp;·&nbsp; Utilization: <strong style="color:var(--green);">High</strong> &nbsp;·&nbsp; Friction: <strong style="color:var(--green);">Low</strong></span>
+      </div>
+      <div class="two-col" style="gap:32px;">
+        <div>
+          <p class="section-title">What you've built since Jan 21</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-green">✓</span><span><strong>Core ticketing live and running.</strong> Your support team is processing tickets end-to-end in DevRev — custom stages, P1–P4 severity mapping, SLA tracking on Ultimate, and email intake all active.</span></li>
+            <li><span class="icon icon-green">✓</span><span><strong>Jira AirSync stabilized.</strong> After a complex stabilization effort through Feb (root cause: reporter mapping + restricted work item types), bidirectional sync is live across your engineering organization.</span></li>
+            <li><span class="icon icon-green">✓</span><span><strong>Custom AI agent deployed.</strong> Your AI agent is configured and fielding tickets — a strong foundation for deflection once your KB content is in place.</span></li>
+            <li><span class="icon icon-green">✓</span><span><strong>Customer portal live.</strong> External customers can submit tickets directly — your team is actively managing inbound through DevRev.</span></li>
+          </ul>
+        </div>
+        <div>
+          <p class="section-title">What needs attention this quarter</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-red">✕</span><span><strong>Operational data visibility is limited.</strong> Key reporting and CSAT data aren't flowing yet — your team is flying without the visibility the platform is designed to provide.</span></li>
+            <li><span class="icon icon-red">✕</span><span><strong>AI deflection hasn't activated.</strong> The agent is configured but the knowledge layer isn't feeding it — this is the primary blocker to realizing AI ROI.</span></li>
+            <li><span class="icon icon-orange">!</span><span><strong>Platform depth remains concentrated.</strong> With one primary owner driving everything, platform knowledge is fragile — the incoming VP of CS is an opportunity to change that.</span></li>
+            <li><span class="icon icon-purple">★</span><span><strong>Coexistence question to address.</strong> We know your team is actively using Claude Enterprise + MCP to manage DevRev. We want to explore: where are the gaps? What's working, what isn't, and how do we close them?</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>2 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 3 — PLATFORM METRICS ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 3 of 10</h2><h1>DevRev Performance — Q1 Metrics</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="kpi-grid" style="margin-bottom:22px;">
+        <div class="kpi-card">
+          <div class="kpi-label">Avg. active users</div>
+          <div class="kpi-value"><span data-count="98" data-delay="100">0</span></div>
+          <div class="kpi-sub">Feb – Mar 2026 · consistent engagement</div>
+          <div class="kpi-bar bar-yellow"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Days since go-live</div>
+          <div class="kpi-value"><span data-count="70" data-delay="200">0</span></div>
+          <div class="kpi-sub">Jan 21 → Apr 1, 2026</div>
+          <div class="kpi-bar bar-blue"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Jira sync active</div>
+          <div class="kpi-value"><span class="live-dot"></span>Live</div>
+          <div class="kpi-sub">Bidirectional — stabilized Feb</div>
+          <div class="kpi-bar bar-green"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Tools → 1 platform</div>
+          <div class="kpi-value">2 → 1</div>
+          <div class="kpi-sub">SFDC ServiceCloud · Jira SD</div>
+          <div class="kpi-bar bar-orange"></div>
+        </div>
+      </div>
+
+      <div class="two-col" style="gap:28px;align-items:start;">
+        <div>
+          <p class="section-title">Active user trend — Feb to Mar 2026</p>
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;">
+            <div class="metric-bar-wrap">
+              <div class="metric-bar-label"><span>Feb 2026 (early)</span><span>~105</span></div>
+              <div class="metric-bar-track"><div class="metric-bar-fill" style="--w:96%;background:var(--yellow);transition-delay:.1s;"><span>105 users</span></div></div>
+            </div>
+            <div class="metric-bar-wrap">
+              <div class="metric-bar-label"><span>Feb 2026 (mid)</span><span>~100</span></div>
+              <div class="metric-bar-track"><div class="metric-bar-fill" style="--w:91%;background:var(--yellow);transition-delay:.25s;"><span>100 users</span></div></div>
+            </div>
+            <div class="metric-bar-wrap">
+              <div class="metric-bar-label"><span>Mar 2026 (early)</span><span>~92</span></div>
+              <div class="metric-bar-track"><div class="metric-bar-fill" style="--w:84%;background:var(--orange);transition-delay:.4s;"><span>92 users</span></div></div>
+            </div>
+            <div class="metric-bar-wrap">
+              <div class="metric-bar-label"><span>Mar 2026 (late)</span><span>~98</span></div>
+              <div class="metric-bar-track"><div class="metric-bar-fill" style="--w:90%;background:var(--green);transition-delay:.55s;"><span>98 users ↑</span></div></div>
+            </div>
+          </div>
+          <p style="font-size:.7rem;color:var(--n900);line-height:1.5;">Sustained engagement across Feb–Mar with a late-March recovery — sign of organic adoption, not just mandated use.</p>
+        </div>
+        <div>
+          <p class="section-title">Platform milestones reached</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-green">✓</span><span>P1–P4 severity taxonomy mapped and enforced across all ticket intake channels — Jira, email, and portal.</span></li>
+            <li><span class="icon icon-green">✓</span><span>Custom ticket stage transitions live — matching CloudZero's operational workflow including on-hold handling.</span></li>
+            <li><span class="icon icon-green">✓</span><span>FAM notification workflow active via Snap-ins — field team gets pinged on escalations automatically.</span></li>
+            <li><span class="icon icon-green">✓</span><span>Spam filtering configured — Cloudflare bypass addressed so legitimate tickets aren't dropped.</span></li>
+            <li><span class="icon icon-green">✓</span><span>Datadog integration active — token expired in Apr, renewed and confirmed.</span></li>
+          </ul>
+          <div class="callout callout-purple" style="margin-top:14px;">
+            <strong>Note on AI context:</strong> We're aware your team is using Claude Enterprise broadly and managing DevRev through MCP. The metrics above reflect DevRev platform adoption — but we're curious what you're seeing in the Claude + DevRev coexistence. <strong>Where are the gaps?</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>3 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 4 — ADOPTION & ENGAGEMENT ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 4 of 10</h2><h1>Adoption &amp; Feature Depth</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="two-col" style="gap:32px;align-items:start;">
+        <div>
+          <p class="section-title">Feature activation depth</p>
+          <div class="prog-item">
+            <div class="prog-label"><span>Core ticketing (intake, stages, SLA)</span><span class="tag tag-green">Live</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:95%; background:var(--green);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>Jira AirSync (bidirectional)</span><span class="tag tag-green">Stable</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:88%; background:var(--green);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>Customer portal</span><span class="tag tag-yellow">Training gap</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:60%; background:var(--yellow);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>AI agent (configured)</span><span class="tag tag-yellow">Needs KB</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:45%; background:var(--orange);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>CSAT surveys</span><span class="tag tag-red">Blocked</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:15%; background:var(--red);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>Dashboards</span><span class="tag tag-yellow">Discussion needed ↓</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:40%; background:var(--blue);"></div></div>
+          </div>
+          <div class="prog-item">
+            <div class="prog-label"><span>Computer (AI teammate)</span><span class="tag tag-purple">5 users · Claude coexist</span></div>
+            <div class="prog-track"><div class="prog-fill" style="--w:28%; background:var(--purple);"></div></div>
+          </div>
+        </div>
+        <div>
+          <p class="section-title">What's driving the gaps</p>
+          <ul class="bullet-list" style="margin-bottom:14px;">
+            <li><span class="icon icon-orange">!</span><span><strong>Training was deliberately compressed.</strong> Bill made a conscious decision early in the engagement to skip full training in favor of a 15-minute video. This is now showing up as field gaps — team not populating required fields like "requested by", customer portal discovered accidentally by external customers.</span></li>
+            <li><span class="icon icon-orange">!</span><span><strong>Single-threaded implementation.</strong> Tom Masse has been the primary driver of all configuration. Vasumathi's departure (Feb 6) removed the secondary resource. The new VP of CS is an opportunity to broaden platform ownership.</span></li>
+            <li><span class="icon icon-purple">★</span><span><strong>Dashboards — worth a conversation.</strong> Tom has been building custom dashboards with Claude rather than waiting on DevRev's native dashboard delivery. We want to understand what's working there and how we close the gap or complement it.</span></li>
+            <li><span class="icon icon-purple">★</span><span><strong>Computer + Claude coexistence.</strong> Five team members are using Computer alongside Claude Enterprise. We'd like to hear directly: where does each tool feel natural, and where do they overlap or create friction?</span></li>
+          </ul>
+          <div class="callout callout-yellow">
+            <strong>Q2 opportunity:</strong> The new VP of CS joining is the perfect moment to reset training, document processes, and distribute platform ownership beyond Tom.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>4 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 5 — JIRA DEEP DIVE ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 5 of 10</h2><h1>Jira AirSync — From Crisis to Stable</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="two-col" style="gap:32px;align-items:start;">
+        <div>
+          <p class="section-title">What happened and how we resolved it</p>
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-dot done"></div>
+              <div class="tl-content">
+                <div class="tl-date">Nov 2025 — Initial setup</div>
+                <div class="tl-label">Jira sync configured</div>
+                <div class="tl-desc">DevOrg slug: <code style="font-size:.7rem;background:var(--n1200);padding:1px 5px;border-radius:4px;">cloudzero</code> · Initial priority and stage mapping attempted</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot risk"></div>
+              <div class="tl-content">
+                <div class="tl-date">Jan – Feb 2026 — Issues escalate</div>
+                <div class="tl-label">Priority mapping broken · Reporter sync failing · Attachments not syncing</div>
+                <div class="tl-desc">Stage mapping from Jira not propagating to DevRev; restricted work item types causing drop-offs; security concerns raised by CloudZero engineering</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot done"></div>
+              <div class="tl-content">
+                <div class="tl-date">Feb 13, 2026 — Dedicated session</div>
+                <div class="tl-label">Jira stabilization meeting (Bill, Tom, Ramya, Anindya)</div>
+                <div class="tl-desc">Root cause review · AirSync reset evaluated · Reporter mapping strategy aligned · Stage deduplication resolved</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot done"></div>
+              <div class="tl-content">
+                <div class="tl-date">Mar 3, 2026 — Attachment fix</div>
+                <div class="tl-label">Jira attachment sync confirmed fixed</div>
+                <div class="tl-desc">Inline image bug resolved; session tokens extended to 28 days</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot done"></div>
+              <div class="tl-content">
+                <div class="tl-date">Mar–Apr 2026 — Stable</div>
+                <div class="tl-label">Bidirectional sync fully operational</div>
+                <div class="tl-desc">P1–P4 severity aligned · Stage transitions consistent · Confluence connector in progress</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="section-title">Current Jira integration health</p>
+          <div class="row-item"><div class="row-left">Bidirectional ticket sync</div><div class="row-right"><span class="tag tag-green">Active</span></div></div>
+          <div class="row-item"><div class="row-left">Priority/severity mapping (P1–P4)</div><div class="row-right"><span class="tag tag-green">Aligned</span></div></div>
+          <div class="row-item"><div class="row-left">Stage transitions (Jira → DevRev)</div><div class="row-right"><span class="tag tag-green">Working</span></div></div>
+          <div class="row-item"><div class="row-left">Attachment sync</div><div class="row-right"><span class="tag tag-green">Fixed Mar 3</span></div></div>
+          <div class="row-item"><div class="row-left">Reporter mapping</div><div class="row-right"><span class="tag tag-green">Resolved</span></div></div>
+          <div class="row-item"><div class="row-left">Confluence KB connector</div><div class="row-right"><span class="tag tag-yellow">In progress</span></div></div>
+          <div class="row-item"><div class="row-left">Restricted work item types</div><div class="row-right"><span class="tag tag-green">Handled</span></div></div>
+          <div class="row-item"><div class="row-left">AirSync reset (as failsafe)</div><div class="row-right"><span class="tag tag-blue">Evaluated</span></div></div>
+
+          <div class="callout callout-green" style="margin-top:14px;">
+            <strong>The hard part is behind you.</strong> Jira AirSync went through the most complex stabilization of your implementation — and it came out the other side clean. The foundation is solid for expanding to additional Jira projects or deeper field mappings in Q2.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>5 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 6 — RISKS & OPEN GAPS ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 6 of 10</h2><h1>Risks &amp; Open Gaps</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="two-col" style="gap:28px;align-items:start;">
+        <div>
+          <p class="section-title">Open operational gaps</p>
+          <ul class="bullet-list" style="margin-bottom:14px;">
+            <li><span class="icon icon-red">✕</span><span><strong>CSAT not firing.</strong> The "requested by" field isn't being populated — meaning survey triggers aren't running and you have zero customer satisfaction data going into renewal. This is the highest-priority fix.</span></li>
+            <li><span class="icon icon-red">✕</span><span><strong>AI agent knowledge is limited.</strong> The KB crawler is only extracting 1 article. Until this is resolved, your AI agent has nothing to work with — deflection ROI is near zero.</span></li>
+            <li><span class="icon icon-orange">!</span><span><strong>Dashboards open question.</strong> Tom has been building dashboards with Claude in lieu of DevRev native reporting. We want to align on what gaps DevRev still needs to close here — and what native reporting would add that Claude-built dashboards don't.</span></li>
+            <li><span class="icon icon-orange">!</span><span><strong>Customer portal training gap.</strong> External customers discovered and began using the portal before your team was trained on it — creating a support surface without a defined process behind it.</span></li>
+          </ul>
+          <div class="callout callout-orange">
+            <strong>For discussion:</strong> On dashboards — do you want DevRev to own this natively, or is the Claude approach working well enough? Let's decide together so we prioritize the right things in Q2.
+          </div>
+        </div>
+        <div>
+          <p class="section-title">Risk register</p>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="risk-row">
+              <div class="risk-badge risk-high">High</div>
+              <div class="risk-text"><strong>CSAT not firing</strong> — "requested by" field unpopulated means zero customer satisfaction data at renewal.</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge risk-high">High</div>
+              <div class="risk-text"><strong>AI agent knowledge gap</strong> — KB crawler stuck at 1 article; deflection ROI is near zero until fixed.</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge risk-high">High</div>
+              <div class="risk-text"><strong>New VP of CS not yet introduced to DevRev</strong> — leadership transition is an attrition risk if the new exec doesn't see value quickly.</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge risk-med">Med</div>
+              <div class="risk-text"><strong>Tom is single point of failure</strong> — with Vasumathi gone, all platform knowledge lives with one person.</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge risk-med">Med</div>
+              <div class="risk-text"><strong>Dashboard delivery gap</strong> — team building workarounds in Claude; native reporting needs to deliver or the gap grows.</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge risk-med">Med</div>
+              <div class="risk-text"><strong>Customer portal discovered before training</strong> — external customers submitting via a surface the team isn't fluent on yet.</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge risk-low">Low</div>
+              <div class="risk-text"><strong>Computer + Claude coexistence friction</strong> — undefined boundaries between tools may slow broader adoption; worth mapping explicitly.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>6 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 7 — AI STRATEGY ══ -->
+  <div class="slide">
+    <div class="slide-header" style="background:linear-gradient(90deg,#160d24 0%,#1a0a2e 100%);border-bottom:1px solid rgba(164,111,255,.3);">
+      <div class="logo-box" style="background:var(--purple-bg);border:1px solid rgba(164,111,255,.4);">
+        <svg viewBox="0 0 30 30" fill="none"><rect x="4" y="7" width="22" height="13" rx="2" stroke="#A46FFF" stroke-width="2"/><path d="M10 20v3M20 20v3M8 23h14" stroke="#A46FFF" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="13" r="2.5" fill="#A46FFF"/></svg>
+      </div>
+      <div><h2 style="color:var(--purple);">Phase 2 — AI Layer</h2><h1>AI Strategy — DevRev + Claude, Better Together</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="callout callout-purple" style="margin-bottom:20px;margin-top:0;">
+        <strong>Starting from a position of strength:</strong> CloudZero is already an AI-forward company — Claude Enterprise is in active use, and your team is managing DevRev through MCP. This isn't a conversation about AI adoption. It's a conversation about <strong>where DevRev's AI layer adds the most value given what you already have.</strong>
+      </div>
+
+      <div class="two-col" style="gap:28px;align-items:start;">
+        <div>
+          <p class="section-title">Where DevRev AI is differentiated vs. Claude</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-purple">★</span><span><strong>AI ticket deflection (25–40% target).</strong> Claude doesn't sit in front of your customer portal. Your configured AI agent does — and once the KB is populated, it deflects inbound before a ticket is ever created. Claude can't do that.</span></li>
+            <li><span class="icon icon-purple">★</span><span><strong>AI-driven ticket routing.</strong> Auto-assign by severity, product area, and on-call schedule — directly inside your ticket workflow. Tom's prioritization formula can become a live routing rule, not a Python script run manually.</span></li>
+            <li><span class="icon icon-blue">→</span><span><strong>Structured workflows, not just answers.</strong> Claude answers questions. DevRev's AI layer executes workflows — stage transitions, assignments, CSAT triggers, escalations. Different job, same AI-forward team.</span></li>
+            <li><span class="icon icon-blue">→</span><span><strong>Confluence connector.</strong> Surface engineering docs in ticket context — agents (human and AI) get the right answer without leaving DevRev.</span></li>
+          </ul>
+        </div>
+        <div>
+          <p class="section-title">The conversation we want to have today</p>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
+            <div class="risk-row">
+              <div class="risk-badge" style="background:var(--purple-bg);color:var(--purple);border:1px solid rgba(164,111,255,.3);min-width:70px;">Q1</div>
+              <div class="risk-text"><strong>Where does Claude + MCP feel seamless for managing DevRev?</strong> We want to double down on what's working.</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge" style="background:var(--purple-bg);color:var(--purple);border:1px solid rgba(164,111,255,.3);min-width:70px;">Q2</div>
+              <div class="risk-text"><strong>Where are the gaps or friction points?</strong> What are you having to work around today?</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge" style="background:var(--purple-bg);color:var(--purple);border:1px solid rgba(164,111,255,.3);min-width:70px;">Q3</div>
+              <div class="risk-text"><strong>What would Computer need to do</strong> to earn a place in your stack alongside Claude Enterprise?</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-badge" style="background:var(--purple-bg);color:var(--purple);border:1px solid rgba(164,111,255,.3);min-width:70px;">Q4</div>
+              <div class="risk-text"><strong>Policy constraints:</strong> Claude Enterprise directive limits Computer's broad rollout. How do you see that evolving — and how can we support a structured coexistence?</div>
+            </div>
+          </div>
+          <div class="callout callout-yellow" style="margin-top:14px;">
+            <strong>Our position:</strong> We're not here to compete with Claude. We're here to make sure DevRev's AI layer — deflection, routing, structured workflows — fills the gaps that Claude + MCP doesn't naturally cover.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>7 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 8 — GROWTH & EXPANSION ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 8 of 10</h2><h1>Growth &amp; Expansion Opportunities</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="two-col" style="gap:28px;align-items:start;">
+        <div>
+          <p class="section-title">Use cases not yet activated</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-blue">→</span><span><strong>Temp / time-limited access.</strong> Tom flagged interest in a beta feature for granting external users temporary access to tickets. Strong use case for CloudZero's customer-facing support model — isolate access by ticket or workspace for a defined window.</span></li>
+            <li><span class="icon icon-blue">→</span><span><strong>Ticket reopening workflow.</strong> Building a proper "reopen" stage transition with automatic notification to the original assignee eliminates a recurring manual process and closes a common source of ticket confusion.</span></li>
+            <li><span class="icon icon-blue">→</span><span><strong>CSAT + NPS feedback loop.</strong> Once "requested by" is fixed and CSAT is firing, you'll have the data to start correlating customer satisfaction with ticket type, severity, and resolution time — renewal evidence your leadership team will actually use.</span></li>
+            <li><span class="icon icon-blue">→</span><span><strong>AWS co-sell motion (active).</strong> CloudZero is a co-sell account with AWS. DevRev's AWS partnership (Eliza Connors + Ishan Mirchandani) is an active channel — joint go-to-market motions are available as your usage story matures.</span></li>
+          </ul>
+        </div>
+        <div>
+          <p class="section-title">How CloudZero compares</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-yellow">★</span><span>Customers at your segment with Jira AirSync stabilization complete typically see a <strong>40% reduction in escalation handle time</strong> within 60 days. You're at that inflection point now.</span></li>
+            <li><span class="icon icon-yellow">★</span><span>Customers who activate KB deflection with an existing AI agent configuration reach first measurable deflection in <strong>under 30 days</strong> after crawler goes live. Your infrastructure is already built.</span></li>
+            <li><span class="icon icon-yellow">★</span><span>Your account is tagged as an HVA co-sell with AWS — which means <strong>joint pipeline and re:Invent exposure</strong> is available as your usage story matures.</span></li>
+            <li><span class="icon icon-yellow">★</span><span>With 183 employees and Series B funding, you're in a high-growth window. <strong>Scaling support ops without headcount</strong> via AI routing and deflection is the playbook that's worked for your peers in fintech infrastructure.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">QBR Apr 2026</span><span>8 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 9 — Q2 JOINT PLAN ══ -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="logo-box"><svg viewBox="0 0 30 30" fill="none"><path d="M5 25 Q5 5 15 5 Q25 5 25 15 Q25 25 15 25" stroke="#FFE000" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="15" cy="15" r="3" fill="#FFE000"/></svg></div>
+      <div><h2>Slide 9 of 10</h2><h1>Q2 2026 Joint Plan</h1></div>
+    </div>
+    <div class="slide-body">
+      <div class="three-col" style="gap:14px;margin-bottom:18px;">
+        <div class="priority-card">
+          <div class="p-num">Priority 1</div>
+          <h3>Fix CSAT + operational visibility</h3>
+          <p>Fix the "requested by" field so CSAT surveys start firing. Align on native dashboard delivery vs. Claude-built approach — and close the gap. These together give leadership the operational visibility they've been waiting for.</p>
+          <div class="owner-row">
+            <span class="tag tag-purple">DevRev: Nico + CS</span>
+            <span class="tag tag-blue">CloudZero: Tom Masse</span>
+          </div>
+          <div style="margin-top:8px;font-size:.7rem;color:var(--n700);">Target: May 2026 · Metric: First CSAT response received</div>
+        </div>
+        <div class="priority-card">
+          <div class="p-num">Priority 2</div>
+          <h3>Unblock KB + activate AI deflection</h3>
+          <p>Fix the web crawler (currently stuck at 1 article), connect the Confluence connector, and turn on AI deflection. This is the fastest path to measurable AI ROI and the key unlock for your existing AI agent investment.</p>
+          <div class="owner-row">
+            <span class="tag tag-purple">DevRev: AAI Eng</span>
+            <span class="tag tag-blue">CloudZero: Tom + Support</span>
+          </div>
+          <div style="margin-top:8px;font-size:.7rem;color:var(--n700);">Target: Jun 2026 · Metric: First deflection rate visible</div>
+        </div>
+        <div class="priority-card">
+          <div class="p-num">Priority 3</div>
+          <h3>Onboard new VP of CS</h3>
+          <p>The incoming VP of CS needs a strong first impression of the platform. Dedicate a session to Customer360, support metrics, and the AI roadmap. Make them a champion before they form an opinion independently.</p>
+          <div class="owner-row">
+            <span class="tag tag-blue">CloudZero: New VP of CS</span>
+            <span class="tag tag-purple">DevRev: Ale + Nico</span>
+          </div>
+          <div style="margin-top:8px;font-size:.7rem;color:var(--n700);">Target: May 2026 · Metric: VP active in workspace</div>
+        </div>
+      </div>
+
+      <div class="two-col" style="gap:24px;align-items:start;">
+        <div>
+          <p class="section-title">Additional Q2 actions</p>
+          <ul class="bullet-list">
+            <li><span class="icon icon-blue">→</span><span>Map Claude + Computer coexistence — define which workflows live where and build a structured rollout plan for the new VP's backing.</span></li>
+            <li><span class="icon icon-blue">→</span><span>Enable AI-driven ticket routing (Phase 2) — automate Tom's prioritization model across the team.</span></li>
+            <li><span class="icon icon-blue">→</span><span>Build CloudZero-specific enablement recording — Tom's feedback on training quality is being addressed.</span></li>
+            <li><span class="icon icon-blue">→</span><span>Beta: temp/time-limited access for external customers submitting via portal.</span></li>
+          </ul>
+        </div>
+        <div class="callout callout-yellow" style="margin-top:0;">
+          <strong>What success looks like at end of Q2:</strong> CSAT data is flowing and you have renewal evidence. Your AI agent is deflecting real tickets. Your new VP of CS is active in DevRev and using it to manage the team. The Claude + DevRev coexistence model is documented and working — not improvised.
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span class="period">Q2 2026 · Apr – Jun 2026</span><span>9 / 10</span></div>
+  </div>
+
+  <!-- ══ SLIDE 10 — THANK YOU ══ -->
+  <div class="slide">
+    <div class="cover" style="gap:0;">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 40%,rgba(255,224,0,.06) 0%,transparent 65%),radial-gradient(ellipse 35% 30% at 80% 75%,rgba(164,111,255,.05) 0%,transparent 60%);pointer-events:none;"></div>
+
+      <div style="position:relative;margin-bottom:24px;">
+        <svg width="60" height="60" viewBox="0 0 40 40" fill="none">
+          <circle cx="14" cy="20" r="8" stroke="#FFE000" stroke-width="2" fill="none"/>
+          <circle cx="14" cy="20" r="2.5" fill="#FFE000"/>
+          <polygon points="26,12 38,20 26,28" fill="none" stroke="#FFE000" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <h1 style="font-size:2.8rem;font-weight:800;letter-spacing:-.02em;margin-bottom:10px;position:relative;">Thank you, <span style="color:var(--yellow);">CloudZero.</span></h1>
+      <p style="font-size:1rem;color:var(--n700);max-width:520px;line-height:1.7;margin-bottom:40px;position:relative;">Three months in and already running a sophisticated AI-enhanced support operation. The best part is still ahead.</p>
+
+      <div class="cover-divider" style="position:relative;"></div>
+
+      <div style="display:flex;gap:20px;margin-top:24px;position:relative;flex-wrap:wrap;justify-content:center;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 22px;text-align:left;min-width:200px;">
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--yellow);margin-bottom:7px;">DevRev Platform</div>
+          <div style="font-size:.86rem;color:var(--white);font-weight:600;margin-bottom:4px;">devrev.ai</div>
+          <div style="font-size:.73rem;color:var(--n700);line-height:1.5;">Support · AI Agent · Customer360<br/>Workflows · Jira AirSync · Analytics</div>
+        </div>
+        <div style="background:var(--card);border:1px solid rgba(164,111,255,.3);border-radius:14px;padding:18px 22px;text-align:left;min-width:200px;">
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--purple);margin-bottom:7px;">Computer — AI Teammate</div>
+          <div style="font-size:.86rem;color:var(--white);font-weight:600;margin-bottom:4px;">devrev.ai/computer</div>
+          <div style="font-size:.73rem;color:var(--n700);line-height:1.5;">Ask · Summarize · Route · Draft<br/>Works alongside Claude Enterprise</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 22px;text-align:left;min-width:200px;">
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--n700);margin-bottom:7px;">Your Team</div>
+          <div style="font-size:.86rem;color:var(--white);font-weight:600;margin-bottom:4px;">Alejandro Costa · Nico García</div>
+          <div style="font-size:.73rem;color:var(--n700);line-height:1.5;">alejandro.costa@devrev.ai<br/>nicolas.garcia@devrev.ai</div>
+        </div>
+      </div>
+
+      <p style="font-size:.7rem;color:var(--n900);margin-top:32px;position:relative;">CloudZero × DevRev · QBR Apr 2026</p>
+      <p style="font-size:.6rem;color:var(--n1100);margin-top:8px;position:relative;display:flex;align-items:center;gap:6px;">
+        <svg width="11" height="11" viewBox="0 0 40 40" fill="none"><circle cx="14" cy="20" r="8" stroke="#4A4748" stroke-width="2.5" fill="none"/><circle cx="14" cy="20" r="2.5" fill="#4A4748"/><polygon points="26,12 38,20 26,28" fill="none" stroke="#4A4748" stroke-width="2.5" stroke-linejoin="round"/></svg>
+        Made by Computer
+      </p>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<div class="nav">
+  <button id="prev" disabled>← Previous</button>
+  <div class="dots" id="dots"></div>
+  <button id="next">Next →</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.deck > .slide'));
+  const dotsEl = document.getElementById('dots');
+  const prev   = document.getElementById('prev');
+  const next   = document.getElementById('next');
+  let cur = 0;
+
+  // Counter animation
+  function animateCounter(el, target, duration, suffix) {
+    const start = performance.now();
+    const update = (now) => {
+      const p = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(ease * target) + (suffix || '');
+      if (p < 1) requestAnimationFrame(update);
+    };
+    requestAnimationFrame(update);
+  }
+
+  function runCounters(slide) {
+    slide.querySelectorAll('[data-count]').forEach(el => {
+      const target = parseFloat(el.dataset.count);
+      const suffix = el.dataset.suffix || '';
+      const delay  = parseFloat(el.dataset.delay || 0);
+      setTimeout(() => animateCounter(el, target, 900, suffix), delay);
+    });
+  }
+
+  function animateBarVals(slide) {
+    slide.querySelectorAll('.bar-val').forEach((el, i) => {
+      el.style.opacity = '0';
+      setTimeout(() => { el.style.transition = 'opacity .3s ease'; el.style.opacity = '1'; }, 150 + i * 150);
+    });
+  }
+
+  function onEnter(slide) {
+    runCounters(slide);
+    animateBarVals(slide);
+  }
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => go(i));
+    dotsEl.appendChild(d);
+  });
+
+  function go(n) {
+    slides[cur].classList.remove('active');
+    dotsEl.children[cur].classList.remove('active');
+    cur = n;
+    slides[cur].classList.add('active');
+    dotsEl.children[cur].classList.add('active');
+    prev.disabled = cur === 0;
+    next.disabled = cur === slides.length - 1;
+    onEnter(slides[cur]);
+  }
+
+  prev.addEventListener('click', () => { if (cur > 0) go(cur - 1); });
+  next.addEventListener('click', () => { if (cur < slides.length - 1) go(cur + 1); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { if (cur < slides.length - 1) go(cur + 1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { if (cur > 0) go(cur - 1); }
+  });
+
+  onEnter(slides[0]);
+</script>
+</body>
+</html>
